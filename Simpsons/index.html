@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Springfield Trivia: Seasons 1–10</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0A0700;
+      --board-bg: #001533;
+      --board-hover: #002566;
+      --yellow: #FFD90F;
+      --orange: #FF6B35;
+      --gold: #FFD90F;
+      --text: #FFF3CC;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Bangers', cursive;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    canvas#sky { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    .screen { display: none; position: relative; z-index: 1; min-height: 100vh; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* ── SPRINGFIELD BAR ─────────────────────────────────────── */
+    .sf-bar { display: flex; align-items: stretch; height: 66px; flex-shrink: 0; }
+    .sf-bar .bl { background: var(--yellow); width: 100px; border-radius: 0 0 0 33px; flex-shrink: 0; }
+    .sf-bar .bg { width: 6px; background: var(--bg); flex-shrink: 0; }
+    .sf-bar .bi {
+      flex: 1; background: var(--bg); display: flex; align-items: center;
+      padding: 0 18px; border-bottom: 2px solid rgba(255,217,15,0.2);
+    }
+    .sf-bar .bi span { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; color: #FF9944; letter-spacing: 2px; }
+    .sf-bar .br {
+      background: var(--yellow); width: 160px; border-radius: 0 0 80px 0; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; color: rgba(0,0,0,0.65);
+      font-family: 'Bangers', cursive;
+    }
+
+    .content {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 16px 16px 24px; gap: 14px; max-width: 1600px; margin: 0 auto; width: 100%;
+    }
+
+    /* ── SETUP ───────────────────────────────────────────────── */
+    .hero { text-align: center; }
+    .hero-title { font-size: 3.2rem; font-weight: 400; color: var(--yellow); letter-spacing: 6px; text-shadow: 0 0 30px rgba(255,217,15,0.5), 2px 2px 0 #FF6B35; }
+    .hero-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.95rem; color: #FF9944; letter-spacing: 5px; margin-top: 6px; }
+    .hero-tag { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; color: rgba(255,243,204,0.4); letter-spacing: 2px; margin-top: 8px; }
+
+    .setup-lbl {
+      font-size: 1rem; letter-spacing: 4px; color: var(--orange);
+      display: flex; align-items: center; gap: 12px; width: 100%; max-width: 1100px;
+      margin-bottom: -4px;
+    }
+    .setup-lbl::before, .setup-lbl::after {
+      content: ''; flex: 1; height: 1px; background: rgba(255,107,53,0.25);
+    }
+
+    .count-row { display: flex; gap: 16px; }
+    .count-btn {
+      width: 80px; height: 80px; border-radius: 50%; border: 2px solid rgba(255,217,15,0.4);
+      background: transparent; color: var(--yellow); font-family: 'Bangers', cursive;
+      font-size: 1.8rem; cursor: pointer; transition: all 0.2s;
+    }
+    .count-btn:hover { border-color: var(--yellow); background: rgba(255,217,15,0.1); }
+    .count-btn.active { background: var(--yellow); color: #000; }
+
+    .pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1100px; }
+    .pcard { background: rgba(255,217,15,0.06); border: 2px solid rgba(255,217,15,0.2); border-radius: 12px; padding: 22px 26px; display: flex; flex-direction: column; gap: 10px; }
+    .pcard label { font-size: 1rem; letter-spacing: 3px; color: var(--yellow); }
+    .pcard input { background: rgba(10,7,0,0.8); border: 1px solid rgba(255,217,15,0.3); border-radius: 6px; color: #fff; font-family: 'Share Tech Mono', monospace; font-size: 1.5rem; padding: 12px 16px; outline: none; transition: border-color 0.2s; }
+    .pcard input:focus { border-color: var(--yellow); }
+
+    .options-row { display: flex; flex-wrap: wrap; gap: 14px; width: 100%; max-width: 1100px; }
+    .opt-toggle { display: flex; align-items: center; gap: 12px; background: rgba(255,107,53,0.06); border: 1.5px solid rgba(255,107,53,0.2); border-radius: 9px; padding: 14px 22px; cursor: pointer; transition: border-color 0.2s; }
+    .opt-toggle:hover { border-color: rgba(255,107,53,0.5); }
+    .opt-toggle input[type=checkbox] { width: 22px; height: 22px; cursor: pointer; accent-color: var(--orange); flex-shrink: 0; }
+    .opt-toggle span { font-family: 'Share Tech Mono', monospace; font-size: 1rem; letter-spacing: 2px; color: rgba(255,243,204,0.7); }
+
+    .engage-btn {
+      background: var(--yellow); color: #000; font-family: 'Bangers', cursive;
+      font-size: 1.8rem; letter-spacing: 5px; padding: 22px 100px;
+      border: none; border-radius: 50px; cursor: pointer; transition: all 0.25s;
+      box-shadow: 0 0 25px rgba(255,217,15,0.3);
+    }
+    .engage-btn:hover { box-shadow: 0 0 50px rgba(255,217,15,0.65); transform: scale(1.04); }
+
+    .rules-note { font-family: 'Share Tech Mono', monospace; font-size: 1.05rem; color: rgba(255,243,204,0.3); text-align: center; max-width: 900px; line-height: 1.7; }
+
+    /* ── VAULT SIGNED-IN BADGE ───────────────────────────── */
+    .pcard-vault-badge {
+      font-size: 0.5rem; letter-spacing: 2px; color: #66CC66;
+      background: rgba(102,204,102,0.1); border: 1px solid rgba(102,204,102,0.3);
+      border-radius: 3px; padding: 1px 6px; vertical-align: middle; margin-left: 6px;
+    }
+
+    #q-timer-wrap {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 22px 0;
+    }
+    #q-timer-bar-bg {
+      flex: 1; height: 6px; background: rgba(255,255,255,0.08);
+      border-radius: 3px; overflow: hidden;
+    }
+    #q-timer-bar {
+      height: 100%; width: 100%; border-radius: 3px;
+      background: #66CC66;
+      transition: width 1s linear, background 0.5s;
+    }
+    #q-timer-bar.warn  { background: #FFC300; }
+    #q-timer-bar.urgent { background: #FF4444; }
+    #q-timer-lbl {
+      font-family: 'Share Tech Mono', monospace; font-weight: 700;
+      font-size: 0.75rem; color: #66CC66; min-width: 30px;
+      text-align: right; transition: color 0.5s;
+    }
+    #q-timer-lbl.warn   { color: #FFC300; }
+    #q-timer-lbl.urgent { color: #FF4444; }
+
+    /* ── PLAYER HUD ──────────────────────────────────────────── */
+    #player-hud { display: flex; gap: 10px; width: 100%; justify-content: center; flex-wrap: wrap; max-width: 1600px; }
+    .pc {
+      flex: 1; min-width: 200px; max-width: 340px;
+      background: rgba(10,7,0,0.9); border: 2px solid rgba(255,217,15,0.15);
+      border-radius: 9px; padding: 14px 18px; transition: all 0.3s;
+    }
+    .pc.active { border-color: var(--yellow); box-shadow: 0 0 18px rgba(255,217,15,0.3); }
+    .pc-name { font-size: 1.1rem; letter-spacing: 2px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
+    .pc-name .arr { color: var(--yellow); }
+    .pc-score { font-family: 'Share Tech Mono', monospace; font-size: 2rem; color: var(--gold); }
+    .pc-score.negative { color: #FF5555; }
+
+    /* ── TURN BAR ────────────────────────────────────────────── */
+    #turn-bar { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 1600px; }
+    #turn-bar .tb-left { font-family: 'Share Tech Mono', monospace; font-size: 1rem; color: rgba(255,153,68,0.7); letter-spacing: 2px; }
+    #turn-bar .tb-name { font-size: 2rem; color: var(--yellow); letter-spacing: 3px; }
+    #turn-bar .tb-right { font-family: 'Share Tech Mono', monospace; font-size: 1rem; color: rgba(255,243,204,0.5); letter-spacing: 1px; text-align: right; }
+
+    /* ── JEOPARDY BOARD ──────────────────────────────────────── */
+    #board-wrap { width: 100%; max-width: 1600px; }
+    #jeopardy-board { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+
+    .bh {
+      background: var(--board-bg); border: 2px solid;
+      border-radius: 7px; padding: 16px 8px; text-align: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+      min-height: 130px;
+    }
+    .bh .bh-icon { font-size: 2.4rem; }
+    .bh .bh-name { font-size: 1.05rem; letter-spacing: 1px; line-height: 1.3; text-transform: uppercase; }
+
+    .bc {
+      background: var(--board-bg); border: 2px solid rgba(100,140,255,0.2);
+      border-radius: 7px; cursor: pointer; text-align: center; padding: 14px 8px;
+      font-family: 'Bangers', cursive; font-size: 2.4rem; color: var(--gold);
+      transition: all 0.2s; min-height: 110px;
+      display: flex; align-items: center; justify-content: center; position: relative;
+    }
+    .bc:hover { background: var(--board-hover); border-color: rgba(255,217,15,0.5); transform: scale(1.04); box-shadow: 0 0 14px rgba(255,217,15,0.2); }
+    .bc.dd { border-color: var(--gold) !important; color: var(--gold); }
+    .bc.dd::after { content: '★'; position: absolute; top: 5px; right: 8px; font-size: 1rem; color: var(--gold); }
+    .bc.answered {
+      background: rgba(0,5,15,0.6); border-color: rgba(255,255,255,0.04);
+      cursor: default; color: rgba(255,255,255,0.07); transform: none; box-shadow: none;
+    }
+    .bc.answered:hover { transform: none; box-shadow: none; }
+
+    /* ── QUESTION OVERLAY ────────────────────────────────────── */
+    #q-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(5,3,0,0.96);
+      z-index: 100; flex-direction: column; align-items: center; justify-content: center; padding: 24px;
+    }
+    #q-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .q-wrap { width: 100%; max-width: 1100px; display: flex; flex-direction: column; gap: 16px; }
+
+    .q-top-bar {
+      padding: 14px 22px; border-radius: 9px 9px 0 0;
+      font-size: 1.2rem; letter-spacing: 3px; text-transform: uppercase;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .q-top-bar .qtb-cat { display: flex; align-items: center; gap: 10px; }
+    .q-top-bar .qtb-val { font-size: 1.6rem; }
+
+    #q-text {
+      background: rgba(5,3,0,0.98); border: 2px solid; border-top: none;
+      padding: 32px 36px; font-family: 'Share Tech Mono', monospace;
+      font-size: 1.8rem; line-height: 1.6; color: #fff; min-height: 120px;
+    }
+
+    #q-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .ab {
+      background: rgba(0,15,50,0.95); border: 2px solid rgba(255,153,68,0.3); border-radius: 8px;
+      color: #fff; font-family: 'Share Tech Mono', monospace; font-size: 1.4rem;
+      padding: 22px 20px; cursor: pointer; text-align: left; transition: all 0.2s;
+      display: flex; gap: 16px; align-items: center; line-height: 1.4;
+    }
+    .ab:hover:not(:disabled) { border-color: var(--orange); background: rgba(255,107,53,0.12); transform: translateY(-1px); }
+    .ab .al { font-family: 'Bangers', cursive; font-size: 1.3rem; min-width: 28px; color: var(--orange); flex-shrink: 0; }
+    .ab:disabled { cursor: default; transform: none; }
+    .ab.correct { border-color: #66CC66; background: rgba(102,204,102,0.15); }
+    .ab.correct .al { color: #66CC66; }
+    .ab.wrong { border-color: #FF4444; background: rgba(255,68,68,0.15); }
+    .ab.wrong .al { color: #FF4444; }
+
+    /* Daily Double wager screen */
+    #dd-screen { display: none; flex-direction: column; align-items: center; gap: 20px; text-align: center; }
+    #dd-screen.show { display: flex; }
+    .dd-title { font-size: 2.5rem; color: var(--gold); letter-spacing: 4px; text-shadow: 0 0 30px rgba(255,217,15,0.6); }
+    .dd-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: rgba(255,243,204,0.6); letter-spacing: 2px; }
+    .dd-range { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--gold); }
+    .wager-row { display: flex; align-items: center; gap: 12px; }
+    .wager-adj {
+      width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(255,217,15,0.5);
+      background: transparent; color: var(--gold); font-size: 1.2rem; cursor: pointer;
+      font-family: 'Bangers', cursive; transition: all 0.2s;
+    }
+    .wager-adj:hover { background: rgba(255,217,15,0.15); border-color: var(--gold); }
+    #wager-display { font-family: 'Bangers', cursive; font-size: 2rem; color: var(--gold); min-width: 130px; text-align: center; }
+    .wager-presets { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .wp-btn {
+      background: transparent; border: 1px solid rgba(255,217,15,0.4); color: var(--gold);
+      font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; padding: 6px 14px;
+      border-radius: 4px; cursor: pointer; transition: all 0.2s;
+    }
+    .wp-btn:hover { background: rgba(255,217,15,0.15); }
+    .wager-go-btn {
+      background: var(--gold); color: #000; font-family: 'Bangers', cursive;
+      font-size: 1.1rem; letter-spacing: 3px; padding: 13px 40px;
+      border: none; border-radius: 50px; cursor: pointer; transition: all 0.2s;
+    }
+    .wager-go-btn:hover { box-shadow: 0 0 25px rgba(255,217,15,0.5); transform: scale(1.03); }
+
+    /* ── RESULT OVERLAY ──────────────────────────────────────── */
+    #result-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(5,3,0,0.88);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    #result-overlay.show { display: flex; animation: fadeIn 0.15s ease; }
+    .rb {
+      background: #0a0700; border: 3px solid; border-radius: 14px;
+      padding: 38px 52px; text-align: center; max-width: 460px;
+      animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn { from { transform: scale(0.82); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .r-icon { font-size: 3.2rem; margin-bottom: 12px; display: block; }
+    .r-head { font-size: 1.6rem; letter-spacing: 4px; margin-bottom: 6px; }
+    .r-head.ok { color: #66CC66; }
+    .r-head.bad { color: #FF4444; }
+    .r-flavor { font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; color: rgba(255,243,204,0.55); margin-bottom: 10px; font-style: italic; }
+    .r-pts { font-family: 'Share Tech Mono', monospace; font-size: 1.05rem; margin-bottom: 4px; }
+    .r-pts.gain { color: #66CC66; }
+    .r-pts.loss { color: #FF4444; }
+    .r-ans { font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; color: #66CC66; margin-top: 8px; margin-bottom: 14px; }
+    .r-board-note { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: rgba(255,217,15,0.7); letter-spacing: 1px; margin-bottom: 12px; }
+    .cont-btn {
+      background: transparent; border: 2px solid var(--yellow); color: var(--yellow);
+      font-family: 'Bangers', cursive; font-size: 1rem; letter-spacing: 3px;
+      padding: 10px 28px; border-radius: 5px; cursor: pointer; transition: all 0.2s;
+    }
+    .cont-btn:hover { background: var(--yellow); color: #000; }
+
+    /* ── GAME OVER ────────────────────────────────────────────── */
+    #gameover-screen .content { align-items: center; text-align: center; }
+    .go-lbl { font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; letter-spacing: 4px; color: #FF9944; }
+    .go-winner-lbl { font-size: 0.9rem; letter-spacing: 6px; color: rgba(255,243,204,0.45); }
+    .go-winner { font-size: 2.5rem; color: var(--yellow); letter-spacing: 4px; text-shadow: 0 0 22px rgba(255,217,15,0.55); margin: 4px 0 16px; }
+    .final-list { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 8px; }
+    .fs-row { display: flex; align-items: center; gap: 14px; background: rgba(10,7,0,0.85); border: 2px solid rgba(255,217,15,0.14); border-radius: 9px; padding: 12px 18px; }
+    .fs-row.win { border-color: var(--yellow); box-shadow: 0 0 14px rgba(255,217,15,0.25); }
+    .fs-rank { font-size: 1.3rem; width: 30px; text-align: center; }
+    .fs-name { flex: 1; letter-spacing: 2px; font-size: 1rem; text-align: left; }
+    .fs-pts { font-family: 'Share Tech Mono', monospace; font-size: 1.1rem; color: var(--gold); min-width: 100px; text-align: right; }
+    .fs-pts.neg { color: #FF5555; }
+    .new-btn { background: var(--yellow); color: #000; font-family: 'Bangers', cursive; font-size: 1.2rem; letter-spacing: 4px; padding: 13px 50px; border: none; border-radius: 50px; cursor: pointer; margin-top: 16px; transition: all 0.25s; box-shadow: 0 0 18px rgba(255,217,15,0.28); }
+    .new-btn:hover { box-shadow: 0 0 38px rgba(255,217,15,0.55); transform: scale(1.04); }
+
+    .divider { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 680px; }
+    .divider .db { height: 6px; border-radius: 3px; }
+    .divider .dl { flex: 1; height: 2px; background: rgba(255,217,15,0.18); }
+  </style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+
+<!-- ══ SETUP ══════════════════════════════════════════════════ -->
+<div id="setup-screen" class="screen active">
+  <div class="sf-bar">
+    <div class="bl"></div><div class="bg"></div>
+    <div class="bi"><span>CHANNEL 6 NEWS — SPRINGFIELD, ILLINOIS — EST. 1989</span></div>
+    <div class="br">SPRINGFIELD TRIVIA</div>
+  </div>
+  <div class="content">
+    <div class="hero">
+      <div class="hero-title">SPRINGFIELD TRIVIA</div>
+      <div class="hero-sub">SEASONS 1 THROUGH 10</div>
+      <div class="hero-tag">JEOPARDY-STYLE — 6 CATEGORIES — 30 QUESTIONS — 5 POINT TIERS</div>
+    </div>
+    <div class="divider">
+      <div class="db" style="width:40px;background:#FFD90F;"></div>
+      <div class="db" style="width:12px;background:#FF6B35;"></div>
+      <div class="dl"></div>
+      <div class="db" style="width:12px;background:#FFD90F;"></div>
+      <div class="db" style="width:40px;background:#FF6B35;"></div>
+    </div>
+    <div class="setup-lbl">NUMBER OF PLAYERS</div>
+    <div class="count-row">
+      <button class="count-btn active" data-n="2" onclick="setCount(2)">2</button>
+      <button class="count-btn" data-n="3" onclick="setCount(3)">3</button>
+      <button class="count-btn" data-n="4" onclick="setCount(4)">4</button>
+    </div>
+    <div class="setup-lbl">PLAYER ROSTER</div>
+    <div class="pgrid" id="pgrid"></div>
+    <div class="setup-lbl">GAME OPTIONS</div>
+    <div class="options-row">
+      <label class="opt-toggle">
+        <input type="checkbox" id="opt-timer" checked>
+        <span>⏱ 60-SECOND TIMER PER QUESTION</span>
+      </label>
+    </div>
+    <button class="engage-btn" onclick="startGame()">D'OH! LET'S PLAY</button>
+    <div class="rules-note">
+      PLAYERS TAKE TURNS SELECTING ANY OPEN CELL ON THE BOARD<br>
+      HIGHER TIERS = HARDER QUESTIONS = MORE POINTS<br>
+      CORRECT: EARN THE POINTS &nbsp;|&nbsp; WRONG: LOSE THE POINTS<br>
+      ★ ONE DAILY DOUBLE HIDDEN ON THE BOARD — WAGER YOUR OWN AMOUNT<br>
+      GAME ENDS WHEN THE BOARD IS CLEARED — HIGHEST SCORE WINS
+    </div>
+  </div>
+</div>
+
+<!-- ══ GAME SCREEN ════════════════════════════════════════════ -->
+<div id="game-screen" class="screen">
+  <div class="sf-bar">
+    <div class="bl"></div><div class="bg"></div>
+    <div class="bi"><span id="game-lbl">SELECT A CLUE</span></div>
+    <div class="br" id="cells-left-label">30 CLUES LEFT</div>
+  </div>
+  <div class="content">
+    <div id="player-hud"></div>
+    <div id="turn-bar">
+      <div>
+        <div class="tb-left">SELECTING</div>
+        <div class="tb-name" id="turn-name">—</div>
+      </div>
+      <div class="tb-right" id="turn-hint">PICK ANY OPEN CELL</div>
+    </div>
+    <div id="board-wrap">
+      <div id="jeopardy-board"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GAME OVER ═══════════════════════════════════════════════ -->
+<div id="gameover-screen" class="screen">
+  <div class="sf-bar">
+    <div class="bl"></div><div class="bg"></div>
+    <div class="bi"><span>BOARD CLEARED — FINAL SCORES</span></div>
+    <div class="br">GAME OVER, MAN</div>
+  </div>
+  <div class="content">
+    <div class="go-lbl">BOARD CLEARED — GAME OVER</div>
+    <div style="font-size:2.8rem;margin:4px 0;">🏆</div>
+    <div class="go-winner-lbl">WINNER</div>
+    <div class="go-winner" id="go-winner">—</div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:rgba(255,243,204,0.38);letter-spacing:3px;margin-bottom:6px;">FINAL SCORES</div>
+    <div class="final-list" id="final-list"></div>
+    <button class="new-btn" onclick="resetGame()">NEW GAME</button>
+  </div>
+</div>
+
+<!-- ══ QUESTION OVERLAY ═══════════════════════════════════════ -->
+<div id="q-overlay">
+  <div id="dd-screen">
+    <div class="dd-title">★ DAILY DOUBLE ★</div>
+    <div class="dd-sub" id="dd-player-name">HOMER — MAKE YOUR WAGER</div>
+    <div class="dd-range" id="dd-range">WAGER $5 TO $1000</div>
+    <div class="wager-row">
+      <button class="wager-adj" onclick="adjustWager(-100)">−</button>
+      <div id="wager-display">$200</div>
+      <button class="wager-adj" onclick="adjustWager(100)">+</button>
+    </div>
+    <div class="wager-presets" id="wager-presets"></div>
+    <button class="wager-go-btn" onclick="lockWager()">LOCK IN WAGER</button>
+  </div>
+
+  <div class="q-wrap" id="q-content" style="display:none;">
+    <div class="q-top-bar" id="q-top-bar">
+      <div class="qtb-cat">
+        <span id="q-icon"></span>
+        <span id="q-cat-name"></span>
+      </div>
+      <div class="qtb-val" id="q-val-label"></div>
+    </div>
+    <div id="q-timer-wrap">
+      <div id="q-timer-bar-bg"><div id="q-timer-bar"></div></div>
+      <div id="q-timer-lbl">60</div>
+    </div>
+    <div id="q-text"></div>
+    <div id="q-answers"></div>
+  </div>
+</div>
+
+<!-- ══ RESULT OVERLAY ══════════════════════════════════════════ -->
+<div id="result-overlay">
+  <div class="rb" id="rb">
+    <span class="r-icon" id="r-icon"></span>
+    <div class="r-head" id="r-head"></div>
+    <div class="r-flavor" id="r-flavor"></div>
+    <div class="r-pts" id="r-pts"></div>
+    <div class="r-ans" id="r-ans"></div>
+    <div class="r-board-note" id="r-board-note"></div>
+    <button class="cont-btn" onclick="continueAfterResult()">CONTINUE →</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// TRIVIA DATA  — Simpsons Seasons 1–10
+// ════════════════════════════════════════════════════════════
+const VALUES = [200, 400, 600, 800, 1000];
+
+const CATS = [
+  {
+    id: 'family', name: 'The Simpson Family', color: '#FFD90F', icon: '🏠',
+    q: {
+      200: [
+        { q: "What is Homer Simpson's middle name?",
+          a: ["Jay","Jack","James","Joseph"], c: 0 },
+        { q: "What instrument does Lisa Simpson play?",
+          a: ["Alto saxophone","Trumpet","Violin","Flute"], c: 0 },
+        { q: "What is Marge Simpson's maiden name?",
+          a: ["Bouvier","Jacqueline","Sherri","Patrice"], c: 0 },
+      ],
+      400: [
+        { q: "What is Bart Simpson's full given name?",
+          a: ["Bartholomew JoJo Simpson","Bartholomew James Simpson","Barton Joseph Simpson","Bartley Jo Simpson"], c: 0 },
+        { q: "What is the house number of the Simpsons' home on Evergreen Terrace?",
+          a: ["742","840","1024","512"], c: 0 },
+        { q: "What is the name of the Simpsons' pet cat?",
+          a: ["Snowball II","Snowball I","Fluffy","Mittens"], c: 0 },
+        { q: "What is the name of Homer's father?",
+          a: ["Abraham (Grampa)","Herbert","Clancy","Orville"], c: 0 },
+      ],
+      600: [
+        { q: "In 'Lisa's First Word,' what is Maggie's first spoken word, voiced by a surprise celebrity?",
+          a: ["Daddy","Mama","Homer","No"], c: 0 },
+        { q: "In 'Lisa's First Word,' what are Bart's very first words as a baby?",
+          a: ["Ay, caramba!","Eat my shorts","Daddy","Don't have a cow"], c: 0 },
+        { q: "What are the names of Marge's two sisters?",
+          a: ["Patty and Selma","Betty and Veronica","Paula and Sandra","Edna and Ruth"], c: 0 },
+      ],
+      800: [
+        { q: "What is the name of Homer's mother, revealed to still be alive in Season 7's 'Mother Simpson'?",
+          a: ["Mona","Martha","Mary","Miriam"], c: 0 },
+        { q: "In 'Homer's Barbershop Quartet,' what is the name of Homer's Grammy-winning barbershop group?",
+          a: ["The Be Sharps","The Harmonics","The Springfield Four","The Duff Tones"], c: 0 },
+      ],
+      1000: [
+        { q: "In 'Homer's Barbershop Quartet,' the Be Sharps' rapid rise to fame and messy break-up is a deliberate parody of which real-world band?",
+          a: ["The Beatles","The Rolling Stones","The Beach Boys","Led Zeppelin"], c: 0 },
+      ],
+    }
+  },
+  {
+    id: 'springfield', name: 'Springfield & Neighbors', color: '#009DDC', icon: '🏙️',
+    q: {
+      200: [
+        { q: "What is the name of the bar Homer regularly visits?",
+          a: ["Moe's Tavern","The Rusty Nail","Barney's Bar","Springfield Tap"], c: 0 },
+        { q: "What is the name of Homer's friendly next-door neighbor?",
+          a: ["Ned Flanders","Frank Grimes","Barney Gumble","Carl Carlson"], c: 0 },
+      ],
+      400: [
+        { q: "What type of items does Ned Flanders sell at his store, The Leftorium?",
+          a: ["Left-handed items","Religious items","Sporting goods","Novelty products"], c: 0 },
+        { q: "What is the name of Springfield's convenience store?",
+          a: ["Kwik-E-Mart","Stop-N-Shop","Quick Mart","Springfield Mini-Mart"], c: 0 },
+        { q: "What is Chief Wiggum's first name?",
+          a: ["Clancy","Ralph","Leonard","Edward"], c: 0 },
+        { q: "What is the name of Ned Flanders' wife?",
+          a: ["Maude","Ruth","Patty","Helen"], c: 0 },
+      ],
+      600: [
+        { q: "What is Krusty the Clown's real surname?",
+          a: ["Krustofsky","Krustenheimer","Kruster","Krustalien"], c: 0 },
+        { q: "What is Sideshow Bob's full real name?",
+          a: ["Robert Underdunk Terwilliger Jr.","Robert Terwilliger","Cecil Terwilliger","Frederick Underdunk Terwilliger"], c: 0 },
+        { q: "What is the official name of the school Bart and Lisa attend?",
+          a: ["Springfield Elementary School","William Howard Taft Elementary","Springfield Grammar School","Abraham Lincoln Elementary"], c: 0 },
+      ],
+      800: [
+        { q: "In Season 9's 'The Principal and the Pauper,' what is revealed to be Principal Skinner's real birth name?",
+          a: ["Armin Tamzarian","Walter Prince","Edward Holloway","Martin Sheen"], c: 0 },
+        { q: "What is Apu's notoriously long last name?",
+          a: ["Nahasapeemapetilon","Nahasapeemapetilan","Nahasapeemapetillon","Nahasapeemapetilin"], c: 0 },
+      ],
+      1000: [
+        { q: "In 'Selma's Choice,' what is the name of the Duff Beer-themed amusement park the family visits, where Duff Man reigns?",
+          a: ["Duff Gardens","Duff World","Duffland","Duff Park"], c: 0 },
+      ],
+    }
+  },
+  {
+    id: 'episodes', name: 'Classic Episodes', color: '#66CC66', icon: '📺',
+    q: {
+      200: [
+        { q: "In the two-part Season 6/7 mystery, who is ultimately revealed to have shot Mr. Burns?",
+          a: ["Maggie Simpson","Bart Simpson","Homer Simpson","Marge Simpson"], c: 0 },
+        { q: "In 'Bart the Genius,' Bart cheats on an IQ test and is enrolled in what type of school?",
+          a: ["A school for gifted children","Military school","A private prep school","A school for troubled youth"], c: 0 },
+      ],
+      400: [
+        { q: "In 'Marge vs. the Monorail,' who cons Springfield into buying a shoddy monorail system?",
+          a: ["Lyle Lanley","Hank Scorpio","Frank Grimes","Sideshow Bob"], c: 0 },
+        { q: "In 'Cape Feare,' which villain is paroled from prison and begins stalking Bart's family?",
+          a: ["Sideshow Bob","Fat Tony","Snake Jailbird","Krusty the Clown"], c: 0 },
+        { q: "In 'You Only Move Twice,' what is Homer's charismatic new boss Hank Scorpio secretly plotting?",
+          a: ["Dominating the world — he is a Bond-style supervillain","Stealing from the nuclear plant","Overthrowing the Springfield government","Framing Homer for industrial espionage"], c: 0 },
+        { q: "In 'Homer at the Bat,' how does Homer ultimately win the game for the power plant softball team?",
+          a: ["He is hit by a pitch with the bases loaded, forcing in the winning run","He hits a walk-off grand slam","Darryl Strawberry pinch hits at the last second","He steals home on the final pitch"], c: 0 },
+      ],
+      600: [
+        { q: "In 'Homer's Enemy,' what is the fate of Frank Grimes — the self-made man who despises Homer's unearned success?",
+          a: ["He electrocutes himself while imitating Homer's reckless habits","He quits and moves to another city","He is fired by Mr. Burns","He suffers a breakdown and is institutionalized"], c: 0 },
+        { q: "In 'El Viaje Misterioso de Nuestro Jomer,' what animal serves as Homer's spirit guide during a chili-induced hallucination?",
+          a: ["A coyote","A fox","A raven","A roadrunner"], c: 0 },
+        { q: "In 'Rosebud,' what is the name of Mr. Burns' beloved childhood teddy bear?",
+          a: ["Bobo","Teddy","Mr. Fuzzy","Chippy"], c: 0 },
+      ],
+      800: [
+        { q: "In 'Homer at the Bat,' what bizarre physical affliction strikes Roger Clemens after Mr. Burns' doctor examines him?",
+          a: ["He starts clucking and acting exactly like a chicken","His head swells to enormous size","He develops amnesia and forgets baseball","He becomes terrified of baseballs"], c: 0 },
+        { q: "In 'Bart Sells His Soul,' to whom does Bart sell his soul for $5?",
+          a: ["Milhouse","Nelson","Martin","Ralph Wiggum"], c: 0 },
+      ],
+      1000: [
+        { q: "In 'Lisa's Substitute,' which Hollywood actor voiced the beloved substitute teacher Mr. Bergstrom — appearing uncredited under the pseudonym 'Sam Etic'?",
+          a: ["Dustin Hoffman","Robert De Niro","Al Pacino","Jack Nicholson"], c: 0 },
+      ],
+    }
+  },
+  {
+    id: 'quotes', name: 'Quotes & Catchphrases', color: '#FF6B35', icon: '💬',
+    q: {
+      200: [
+        { q: "What is Homer Simpson's trademark exclamation when he makes a mistake or is frustrated?",
+          a: ["D'oh!","Woo-hoo!","Ay caramba!","D'ough!"], c: 0 },
+        { q: "What is Bart's classic phrase telling someone not to overreact?",
+          a: ["Don't have a cow, man","Eat my shorts","Cowabunga","No way, José"], c: 0 },
+      ],
+      400: [
+        { q: "What single word does Mr. Burns say when something pleases him — typically while steepling his fingers?",
+          a: ["Excellent","Splendid","Wonderful","Superb"], c: 0 },
+        { q: "Complete Ned Flanders' classic neighborly greeting: 'Hi-diddly-___-neighborino!'",
+          a: ["Ho","Hey","Ha","Hoo"], c: 0 },
+        { q: "What is Homer's jubilant exclamation when something goes his way?",
+          a: ["Woo-hoo!","D'oh!","Yahoo!","Wahoo!"], c: 0 },
+      ],
+      600: [
+        { q: "In 'Bart Gets Famous,' what one simple phrase makes Bart a TV star — which he then grows to utterly despise?",
+          a: ["I didn't do it","Eat my shorts","Don't have a cow","Cowabunga, dude"], c: 0 },
+        { q: "What is Comic Book Guy's signature dismissive catchphrase?",
+          a: ["Worst. Episode. Ever.","Most. Overrated. Show. Ever.","Best. Day. Ever.","Worst. Purchase. Ever."], c: 0 },
+        { q: "In 'Cape Feare,' what does Sideshow Bob perform in its entirety to buy time while the Simpsons are on a houseboat?",
+          a: ["The complete score of H.M.S. Pinafore by Gilbert & Sullivan","All of Shakespeare's Hamlet","Every song from The Phantom of the Opera","The entire score of Sweeney Todd"], c: 0 },
+      ],
+      800: [
+        { q: "In 'Treehouse of Horror V,' what does Homer repeatedly write all over the walls in the parody of The Shining?",
+          a: ["No TV and no beer make Homer go crazy","All work and no play makes Homer a dull boy","No beer no TV no beer no TV","Homer want beer Homer want TV"], c: 0 },
+      ],
+      1000: [
+        { q: "At the end of 'Homer at the Bat,' the cast sings a song recapping the episode's events. What real song is it sung to the tune of?",
+          a: ["Terry Cashman's 'Talkin' Baseball'","'Take Me Out to the Ball Game'","John Fogerty's 'Centerfield'","'We Are the Champions' by Queen"], c: 0 },
+      ],
+    }
+  },
+  {
+    id: 'gueststars', name: 'Guest Stars & Cameos', color: '#CC66CC', icon: '🌟',
+    q: {
+      200: [
+        { q: "Which Beatle makes a surprise cameo in 'Homer's Barbershop Quartet,' appearing on the rooftop for the Be Sharps' final concert?",
+          a: ["George Harrison","Paul McCartney","Ringo Starr","John Lennon"], c: 0 },
+        { q: "Which celebrity guest voiced the single word 'Daddy' — baby Maggie's first ever spoken word in 'Lisa's First Word'?",
+          a: ["Elizabeth Taylor","Meryl Streep","Oprah Winfrey","Cher"], c: 0 },
+      ],
+      400: [
+        { q: "Michael Jackson guest-starred (uncredited) in 'Stark Raving Dad' as a man in a mental institution. What pseudonym did he use in the credits?",
+          a: ["John Jay Smith","Joe King","Jack White","M.J. Stone"], c: 0 },
+        { q: "Which comedian voiced Hank Scorpio — Homer's charming but world-dominating boss — in 'You Only Move Twice'?",
+          a: ["Albert Brooks","Steve Martin","Billy Crystal","Robin Williams"], c: 0 },
+        { q: "Which famous singer/actor voiced Homer's spirit guide coyote in 'El Viaje Misterioso de Nuestro Jomer'?",
+          a: ["Johnny Cash","Willie Nelson","Kris Kristofferson","Waylon Jennings"], c: 0 },
+      ],
+      600: [
+        { q: "In 'Homer's Phobia,' Homer befriends a flamboyant antiques dealer who turns out to be gay. Which cult film director voiced that character?",
+          a: ["John Waters","Gus Van Sant","Pedro Almodóvar","Tim Burton"], c: 0 },
+        { q: "In 'Homer at the Bat,' what physical disaster befalls Ken Griffey Jr. after Mr. Burns gives him a special nerve tonic?",
+          a: ["His jaw swells to enormous size (gigantism)","He becomes invisible","He develops super strength but can't control it","He loses the ability to hit a curveball"], c: 0 },
+      ],
+      800: [
+        { q: "In 'Homerpalooza,' which band accidentally hires a London Symphony Orchestra to perform with them at their Lollapalooza set?",
+          a: ["Cypress Hill","Smashing Pumpkins","Sonic Youth","Peter Frampton"], c: 0 },
+        { q: "In 'Homer at the Bat,' Don Mattingly is repeatedly benched by Mr. Burns for an absurd reason. What is it?",
+          a: ["Burns insists he shave his sideburns — which he doesn't even have","Burns thinks he is underperforming statistically","Burns confuses him with a different player","Burns dislikes the way he holds the bat"], c: 0 },
+      ],
+      1000: [
+        { q: "In '22 Short Films About Springfield,' Principal Skinner serves Superintendent Chalmers a lunch that is clearly fast food from a nearby restaurant. What does Skinner hilariously call this food?",
+          a: ["Steamed hams — 'an Albany expression'","Home-cooked burgers","Springfield specials","Aurora borealis sandwiches"], c: 0 },
+      ],
+    }
+  },
+  {
+    id: 'treehouse', name: 'Treehouse of Horror', color: '#FF4444', icon: '🎃',
+    q: {
+      200: [
+        { q: "In which season did the very first 'Treehouse of Horror' Halloween special air?",
+          a: ["Season 2","Season 1","Season 3","Season 4"], c: 0 },
+        { q: "In 'Treehouse of Horror IV,' who plays the Devil when Bart accidentally sells his soul for a donut?",
+          a: ["Ned Flanders","Mr. Burns","Krusty the Clown","Sideshow Bob"], c: 0 },
+      ],
+      400: [
+        { q: "In 'Treehouse of Horror V,' which famous Stephen King story is parodied in the segment titled 'The Shinning'?",
+          a: ["The Shining","The Haunting of Hill House","Psycho","The Amityville Horror"], c: 0 },
+        { q: "In 'Treehouse of Horror III,' Homer is portrayed as a giant rampaging monster in a parody of which classic film?",
+          a: ["King Kong","Godzilla","Frankenstein","The Creature from the Black Lagoon"], c: 0 },
+        { q: "In 'Treehouse of Horror VII,' which two 1996 U.S. presidential candidates are secretly replaced by aliens Kang and Kodos?",
+          a: ["Bob Dole and Bill Clinton","George H.W. Bush and Bill Clinton","Al Gore and Ross Perot","George W. Bush and Al Gore"], c: 0 },
+      ],
+      600: [
+        { q: "In 'Treehouse of Horror VI,' Homer is sucked into the third dimension. This segment was groundbreaking for its use of what technology?",
+          a: ["Early computer-generated 3D animation (CGI)","Stop-motion puppetry","Claymation","Hand-drawn cel animation with forced perspective"], c: 0 },
+        { q: "In 'Treehouse of Horror VII,' Bart discovers he has a secret twin brother hidden in the attic. What is the twin's name?",
+          a: ["Hugo","Sideshow Bob Jr.","Bartholemew","The Dark Bart"], c: 0 },
+      ],
+      800: [
+        { q: "In 'Treehouse of Horror II,' whose brain does Mr. Burns transplant into a robotic body in the segment 'If I Only Had a Brain'?",
+          a: ["Homer's","Bart's","Lisa's","Ned's"], c: 0 },
+        { q: "In 'Treehouse of Horror IV,' 'Terror at 5½ Feet' shows Bart seeing a gremlin destroying the school bus while no one believes him. Which classic TV series is this a parody of?",
+          a: ["The Twilight Zone","The Outer Limits","Alfred Hitchcock Presents","Amazing Stories"], c: 0 },
+      ],
+      1000: [
+        { q: "In 'Treehouse of Horror V,' 'Time and Punishment' has Homer accidentally traveling through time. What everyday household appliance does he use as a time machine?",
+          a: ["His toaster","The microwave","The TV remote","A nuclear rod"], c: 0 },
+      ],
+    }
+  }
+];
+
+const OK_LINES = [
+  "Excellent! Smithers, this person pleases me.",
+  "Woo-hoo! You really know your Simpsons!",
+  "Correct! Don't have a cow, man — keep it up.",
+  "Mmm... correct answer...",
+  "Ay caramba! You actually know this stuff!",
+  "Outstanding. Even Lisa is impressed.",
+];
+const BAD_LINES = [
+  "D'oh! Back to the couch for you.",
+  "Incorrect. Even Homer knows that one.",
+  "That is not correct. Did you even watch the show?",
+  "Wrong! I didn't do it... but you sure did.",
+  "I protest — on the grounds that you are wrong.",
+  "Worst. Answer. Ever.",
+];
+
+// ════════════════════════════════════════════════════════════
+// GAME STATE
+// ════════════════════════════════════════════════════════════
+let G = {
+  players: [],
+  currentIdx: 0,
+  board: {},
+  cellsLeft: 30,
+  dailyDouble: null,
+  ddWager: 200,
+  currentCell: null,
+};
+let selectedCount = 2;
+
+// ════════════════════════════════════════════════════════════
+// BACKGROUND — warm Springfield sky with floating dots
+// ════════════════════════════════════════════════════════════
+(function() {
+  const cv = document.getElementById('sky'), ctx = cv.getContext('2d');
+  function resize() { cv.width = innerWidth; cv.height = innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  const dots = Array.from({length:120},()=>({
+    x:Math.random(), y:Math.random(), sz:Math.random()*1.4+0.3,
+    op:Math.random()*0.4+0.1, ph:Math.random()*Math.PI*2, sp:Math.random()*0.5+0.2
+  }));
+  function draw() {
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const t = Date.now()*0.001;
+    for(const s of dots){
+      ctx.beginPath();
+      ctx.arc(s.x*cv.width, s.y*cv.height, s.sz, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,220,80,${s.op*(0.65+0.35*Math.sin(t*s.sp+s.ph))})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ════════════════════════════════════════════════════════════
+// SETUP
+// ════════════════════════════════════════════════════════════
+const DEF = ['HOMER','MARGE','BART','LISA'];
+const DEF_FULL = ['HOMER SIMPSON','MARGE SIMPSON','BART SIMPSON','LISA SIMPSON'];
+
+function getVaultUser() { return localStorage.getItem('trivia_vault_user') || null; }
+
+function setCount(n) {
+  selectedCount = n;
+  document.querySelectorAll('.count-btn').forEach(b => b.classList.toggle('active', +b.dataset.n === n));
+  buildPlayerInputs();
+}
+
+function buildPlayerInputs() {
+  const vaultUser = getVaultUser();
+  document.getElementById('pgrid').innerHTML = Array.from({length: selectedCount}, (_, i) => {
+    const isMe = i === 0 && vaultUser;
+    return `<div class="pcard" id="pcard-${i}">
+      <label>PLAYER ${i+1}${isMe ? '<span class="pcard-vault-badge">✓ SIGNED IN</span>' : ''}</label>
+      <input type="text" id="pn-${i}" placeholder="${DEF_FULL[i]}" maxlength="20"${isMe ? ` value="${vaultUser}"` : ''}>
+    </div>`;
+  }).join('');
+}
+
+function startGame() {
+  const names = Array.from({length: selectedCount}, (_, i) =>
+    (document.getElementById(`pn-${i}`)?.value.trim().toUpperCase()) || DEF[i]);
+
+  G = {
+    players: names.map(n => ({ name: n, score: 0 })),
+    currentIdx: 0,
+    board: {},
+    cellsLeft: 30,
+    dailyDouble: null,
+    ddWager: 200,
+    currentCell: null,
+    timerEnabled: document.getElementById('opt-timer')?.checked ?? true,
+  };
+
+  CATS.forEach(cat => {
+    G.board[cat.id] = {};
+    VALUES.forEach(v => G.board[cat.id][v] = false);
+  });
+
+  G.selectedQ = {};
+  CATS.forEach(cat => {
+    G.selectedQ[cat.id] = {};
+    VALUES.forEach(v => {
+      const pool = cat.q[v];
+      G.selectedQ[cat.id][v] = pool[Math.floor(Math.random() * pool.length)];
+    });
+  });
+
+  const ddCat = CATS[Math.floor(Math.random() * CATS.length)];
+  const ddVals = [400, 600, 800, 800, 1000, 1000];
+  const ddVal = ddVals[Math.floor(Math.random() * ddVals.length)];
+  G.dailyDouble = { catId: ddCat.id, value: ddVal };
+
+  showScreen('game-screen');
+  renderHUD();
+  renderBoard();
+}
+
+// ════════════════════════════════════════════════════════════
+// SCREENS
+// ════════════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ════════════════════════════════════════════════════════════
+// HUD
+// ════════════════════════════════════════════════════════════
+function renderHUD() {
+  document.getElementById('player-hud').innerHTML = G.players.map((p, i) => {
+    const active = i === G.currentIdx;
+    const neg = p.score < 0;
+    return `
+      <div class="pc${active ? ' active' : ''}">
+        <div class="pc-name">${active ? '<span class="arr">▶ </span>' : ''}${p.name}</div>
+        <div class="pc-score${neg ? ' negative' : ''}">${neg ? '-' : ''}$${Math.abs(p.score).toLocaleString()}</div>
+      </div>`;
+  }).join('');
+  document.getElementById('turn-name').textContent = G.players[G.currentIdx].name;
+}
+
+// ════════════════════════════════════════════════════════════
+// BOARD
+// ════════════════════════════════════════════════════════════
+function renderBoard() {
+  const board = document.getElementById('jeopardy-board');
+  document.getElementById('cells-left-label').textContent = `${G.cellsLeft} CLUE${G.cellsLeft !== 1 ? 'S' : ''} LEFT`;
+  document.getElementById('game-lbl').textContent = 'SELECT A CLUE';
+  document.getElementById('turn-hint').textContent = 'PICK ANY OPEN CELL';
+
+  let html = '';
+  CATS.forEach(cat => {
+    html += `
+      <div class="bh" style="border-color:${cat.color}30; color:${cat.color};">
+        <div class="bh-icon">${cat.icon}</div>
+        <div class="bh-name">${cat.name}</div>
+      </div>`;
+  });
+
+  VALUES.forEach(val => {
+    CATS.forEach(cat => {
+      const answered = G.board[cat.id][val];
+      const isDD = G.dailyDouble && G.dailyDouble.catId === cat.id && G.dailyDouble.value === val;
+      if (answered) {
+        html += `<div class="bc answered"></div>`;
+      } else {
+        html += `<button class="bc${isDD ? ' dd' : ''}" onclick="selectCell('${cat.id}',${val})">$${val.toLocaleString()}</button>`;
+      }
+    });
+  });
+
+  board.innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════════
+// CELL SELECTION
+// ════════════════════════════════════════════════════════════
+function selectCell(catId, value) {
+  if (G.board[catId][value]) return;
+  const cat = CATS.find(c => c.id === catId);
+  const q = G.selectedQ[catId][value];
+  const isDD = G.dailyDouble && G.dailyDouble.catId === catId && G.dailyDouble.value === value;
+  G.currentCell = { catId, value, q, cat, isDD };
+  document.getElementById('q-overlay').classList.add('show');
+  if (isDD) showDailyDouble();
+  else showQuestion();
+}
+
+// ════════════════════════════════════════════════════════════
+// DAILY DOUBLE
+// ════════════════════════════════════════════════════════════
+function showDailyDouble() {
+  document.getElementById('dd-screen').classList.add('show');
+  document.getElementById('q-content').style.display = 'none';
+  const player = G.players[G.currentIdx];
+  const maxWager = Math.max(player.score, G.currentCell.value);
+  const minWager = 5;
+  document.getElementById('dd-player-name').textContent = `${player.name} — MAKE YOUR WAGER`;
+  document.getElementById('dd-range').textContent = `WAGER $${minWager} TO $${maxWager.toLocaleString()}`;
+  G.ddWager = G.currentCell.value;
+  const presets = [];
+  if (player.score >= 5) presets.push(player.score);
+  presets.push(G.currentCell.value);
+  if (Math.round(maxWager / 2) >= minWager) presets.push(Math.round(maxWager / 2));
+  const unique = [...new Set(presets)].sort((a,b)=>a-b);
+  document.getElementById('wager-presets').innerHTML = unique.map(p =>
+    `<button class="wp-btn" onclick="setWager(${p})">$${p.toLocaleString()}</button>`).join('');
+  updateWagerDisplay();
+}
+
+function adjustWager(delta) {
+  const player = G.players[G.currentIdx];
+  const max = Math.max(player.score, G.currentCell.value);
+  G.ddWager = Math.min(max, Math.max(5, G.ddWager + delta));
+  updateWagerDisplay();
+}
+
+function setWager(amount) { G.ddWager = amount; updateWagerDisplay(); }
+function updateWagerDisplay() { document.getElementById('wager-display').textContent = `$${G.ddWager.toLocaleString()}`; }
+function lockWager() { document.getElementById('dd-screen').classList.remove('show'); showQuestion(); }
+
+// ════════════════════════════════════════════════════════════
+// QUESTION
+// ════════════════════════════════════════════════════════════
+function showQuestion() {
+  const { cat, value, q, isDD } = G.currentCell;
+  const content = document.getElementById('q-content');
+  content.style.display = 'flex';
+  const topBar = document.getElementById('q-top-bar');
+  topBar.style.background = cat.color;
+  topBar.style.color = '#000';
+  document.getElementById('q-icon').textContent = cat.icon;
+  document.getElementById('q-cat-name').textContent = cat.name.toUpperCase();
+  document.getElementById('q-val-label').textContent = isDD ? `★ DAILY DOUBLE — WAGER: $${G.ddWager.toLocaleString()}` : `$${value.toLocaleString()}`;
+  const qText = document.getElementById('q-text');
+  qText.style.borderColor = cat.color;
+  qText.textContent = q.q;
+  const order = [0,1,2,3];
+  for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  const letters = ['A','B','C','D'];
+  document.getElementById('q-answers').innerHTML = order.map((orig, disp) => `
+    <button class="ab" data-idx="${orig}" onclick="submitAnswer(${orig},this)">
+      <span class="al">${letters[disp]}</span>
+      <span>${q.a[orig]}</span>
+    </button>`).join('');
+  startQuestionTimer();
+}
+
+function submitAnswer(selectedIdx, btn) {
+  clearQuestionTimer();
+  const { q, value, catId, isDD } = G.currentCell;
+  const correct = selectedIdx === q.c;
+  const player = G.players[G.currentIdx];
+  const points = isDD ? G.ddWager : value;
+  document.querySelectorAll('.ab').forEach(b => {
+    b.disabled = true;
+    const idx = +b.dataset.idx;
+    if (idx === q.c) b.classList.add('correct');
+    else if (b === btn) b.classList.add('wrong');
+  });
+  if (correct) player.score += points;
+  else player.score -= points;
+  G.board[catId][value] = true;
+  G.cellsLeft--;
+  renderHUD();
+  showResult(correct, points, q.a[q.c]);
+}
+
+// ── Question timer ────────────────────────────────────────
+let _qTimerInterval = null;
+const Q_TIME = 60;
+
+function startQuestionTimer() {
+  const wrap = document.getElementById('q-timer-wrap');
+  if (!G.timerEnabled) { if (wrap) wrap.style.display = 'none'; return; }
+  if (wrap) wrap.style.display = 'flex';
+  clearQuestionTimer();
+  let remaining = Q_TIME;
+  updateTimerUI(remaining);
+  _qTimerInterval = setInterval(() => {
+    remaining--;
+    updateTimerUI(remaining);
+    if (remaining <= 0) {
+      clearQuestionTimer();
+      timeOutQuestion();
+    }
+  }, 1000);
+}
+
+function clearQuestionTimer() {
+  if (_qTimerInterval) { clearInterval(_qTimerInterval); _qTimerInterval = null; }
+}
+
+function updateTimerUI(remaining) {
+  const bar = document.getElementById('q-timer-bar');
+  const lbl = document.getElementById('q-timer-lbl');
+  if (!bar || !lbl) return;
+  const pct = (remaining / Q_TIME) * 100;
+  bar.style.width = pct + '%';
+  const state = remaining <= 10 ? 'urgent' : remaining <= 30 ? 'warn' : '';
+  bar.className = state;
+  lbl.className = state;
+  lbl.textContent = remaining;
+}
+
+function timeOutQuestion() {
+  document.querySelectorAll('.ab').forEach(b => {
+    b.disabled = true;
+    if (+b.dataset.idx === G.currentCell.q.c) b.classList.add('correct');
+  });
+  const { q, value, catId, isDD } = G.currentCell;
+  const player = G.players[G.currentIdx];
+  const points = isDD ? G.ddWager : value;
+  player.score -= points;
+  G.board[catId][value] = true;
+  G.cellsLeft--;
+  renderHUD();
+  showResult(false, points, q.a[q.c]);
+}
+
+// ════════════════════════════════════════════════════════════
+// RESULT
+// ════════════════════════════════════════════════════════════
+function showResult(correct, points, correctAns) {
+  document.getElementById('q-overlay').classList.remove('show');
+  document.getElementById('dd-screen').classList.remove('show');
+  document.getElementById('q-content').style.display = 'none';
+  const rb = document.getElementById('rb');
+  rb.style.borderColor = correct ? '#66CC66' : '#FF4444';
+  document.getElementById('r-icon').textContent = correct ? '✅' : '❌';
+  document.getElementById('r-head').className = `r-head ${correct ? 'ok' : 'bad'}`;
+  document.getElementById('r-head').textContent = correct ? 'CORRECT!' : 'INCORRECT';
+  document.getElementById('r-flavor').textContent =
+    (correct ? OK_LINES : BAD_LINES)[Math.floor(Math.random() * 6)];
+  const ptEl = document.getElementById('r-pts');
+  ptEl.className = `r-pts ${correct ? 'gain' : 'loss'}`;
+  ptEl.textContent = correct ? `+$${points.toLocaleString()}` : `-$${points.toLocaleString()}`;
+  document.getElementById('r-ans').textContent = correct ? '' : `✓ CORRECT ANSWER: ${correctAns}`;
+  const boardNote = document.getElementById('r-board-note');
+  boardNote.textContent = G.cellsLeft === 0
+    ? '🏁 BOARD CLEARED — CALCULATING WINNER'
+    : `${G.cellsLeft} CLUE${G.cellsLeft !== 1 ? 'S' : ''} REMAINING ON THE BOARD`;
+  boardNote.style.display = 'block';
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+function continueAfterResult() {
+  document.getElementById('result-overlay').classList.remove('show');
+  if (G.cellsLeft === 0) { endGame(); return; }
+  G.currentIdx = (G.currentIdx + 1) % G.players.length;
+  renderHUD();
+  renderBoard();
+}
+
+// ════════════════════════════════════════════════════════════
+// GAME OVER
+// ════════════════════════════════════════════════════════════
+function endGame() {
+  showScreen('gameover-screen');
+  const sorted = [...G.players].map((p, i) => ({...p, i})).sort((a, b) => b.score - a.score);
+  updateLeaderboard(sorted);
+  document.getElementById('go-winner').textContent = sorted[0].name;
+  const medals = ['🥇','🥈','🥉','4️⃣'];
+  document.getElementById('final-list').innerHTML = sorted.map((p, rank) => {
+    const neg = p.score < 0;
+    return `
+      <div class="fs-row${rank === 0 ? ' win' : ''}">
+        <span class="fs-rank">${medals[rank] || rank+1}</span>
+        <span class="fs-name">${p.name}</span>
+        <span class="fs-pts${neg ? ' neg' : ''}">${neg ? '-' : ''}$${Math.abs(p.score).toLocaleString()}</span>
+      </div>`;
+  }).join('');
+}
+
+function resetGame() {
+  G = { players:[], currentIdx:0, board:{}, cellsLeft:30, dailyDouble:null, ddWager:200, currentCell:null };
+  showScreen('setup-screen');
+}
+
+// ════════════════════════════════════════════════════════════
+// LEADERBOARD
+// ════════════════════════════════════════════════════════════
+const LB_KEY = 'simpsons_trivia_leaderboard';
+
+function loadLeaderboard() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+function saveLeaderboard(data) { localStorage.setItem(LB_KEY, JSON.stringify(data)); }
+
+function updateLeaderboard(sortedPlayers) {
+  // sortedPlayers[0] is the winner
+  const lb = loadLeaderboard();
+  sortedPlayers.forEach((p, rank) => {
+    const key = p.name.toUpperCase().trim();
+    let entry = lb.find(e => e.name === key);
+    if (!entry) {
+      entry = { name: key, wins: 0, gamesPlayed: 0, bestScore: 0, lastPlayed: '' };
+      lb.push(entry);
+    }
+    entry.gamesPlayed++;
+    if (rank === 0) entry.wins++;
+    if (p.score > entry.bestScore) entry.bestScore = p.score;
+    entry.lastPlayed = new Date().toISOString().slice(0, 10);
+  });
+  saveLeaderboard(lb);
+}
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+buildPlayerInputs();
+</script>
+</body>
+</html>
