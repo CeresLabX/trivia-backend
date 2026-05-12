@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trivia Vault</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <!--
+  ╔══════════════════════════════════════════════════════════════════════╗
+  ║  TRIVIA VAULT — DEVELOPER NOTES (for Claude AI context)             ║
+  ╠══════════════════════════════════════════════════════════════════════╣
+  ║                                                                      ║
+  ║  ARCHITECTURE                                                        ║
+  ║  This is the hub homepage. Each trivia game lives in a subfolder.   ║
+  ║                                                                      ║
+  ║  SHARED STORAGE KEYS                                                 ║
+  ║    Accounts:  localStorage 'trek_trivia_accounts'                   ║
+  ║    Admin pw:  per-game ('trek_trivia_admin_pw', '90s_trivia_admin_pw')║
+  ║    Trek LB:       localStorage 'trek_trivia_leaderboard'            ║
+  ║    90s LB:        localStorage '90s_trivia_leaderboard'             ║
+  ║    Seinfeld LB:   localStorage 'seinfeld_trivia_leaderboard'        ║
+  ║    80s LB:        localStorage '80s_trivia_leaderboard'             ║
+  ║    Simpsons LB:   localStorage 'simpsons_trivia_leaderboard'        ║
+  ║                                                                      ║
+  ║  ADDING A NEW TRIVIA CATEGORY                                        ║
+  ║  1. Copy trek/index.html to a new folder (e.g., 80s/index.html)     ║
+  ║  2. Change CSS root vars (--primary, --jep-bg, --jep-hover, --text) ║
+  ║  3. Replace CATS array with new topic questions                      ║
+  ║  4. Update OK_LINES, BAD_LINES, PHONE_FRIENDS for theme flavor      ║
+  ║  5. Change LB_KEY to '<topic>_trivia_leaderboard'                   ║
+  ║  6. Keep ACC_KEY as 'trek_trivia_accounts' (shared accounts)        ║
+  ║  7. Update title, hero text, and source link label                  ║
+  ║  8. Add a game card to this homepage (index.html)                   ║
+  ║  9. Update showLeaderboard() in this file to include the new LB key ║
+  ║                                                                      ║
+  ║  GAMES                                                               ║
+  ║    trek/      — Star Trek TNG Jeopardy (LCARS orange theme)        ║
+  ║    90s/       — 90s Pop Culture Jeopardy (hot pink/neon theme)     ║
+  ║    Seinfeld/  — Seinfeld Trivia (gold/diner theme, has accounts)   ║
+  ║    Simpsons/  — Simpsons Trivia (yellow/Springfield theme)         ║
+  ║    80s/       — 80s Trivia (neon magenta theme, has accounts+LB)   ║
+  ╚══════════════════════════════════════════════════════════════════════╝
+  -->
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --space: #06000e;
+      --primary: #9966FF;
+      --primary-dim: rgba(153,102,255,0.15);
+      --cyan: #44CCFF;
+      --amber: #FF9944;
+      --text: #CCBBEE;
+      --gold: #FFD700;
+    }
+
+    body {
+      background: var(--space);
+      color: var(--text);
+      font-family: 'Orbitron', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    canvas#stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    /* ── HEADER BAR ─────────────────────────────────────────── */
+    .vault-bar {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px;
+      height: 64px;
+      background: rgba(8,0,20,0.85);
+      border-bottom: 2px solid rgba(153,102,255,0.3);
+      backdrop-filter: blur(8px);
+    }
+    .vault-logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .vault-logo-icon { font-size: 1.6rem; }
+    .vault-logo-title {
+      font-size: 1.3rem; font-weight: 900; letter-spacing: 5px;
+      color: var(--primary);
+      text-shadow: 0 0 20px rgba(153,102,255,0.5);
+    }
+    .vault-logo-sub {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.52rem; letter-spacing: 3px;
+      color: rgba(204,187,238,0.4);
+      margin-top: 1px;
+    }
+    .vault-actions { display: flex; gap: 10px; align-items: center; }
+    .hdr-btn {
+      background: transparent;
+      border: 1.5px solid rgba(153,102,255,0.4);
+      color: var(--primary);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.62rem; letter-spacing: 3px;
+      padding: 8px 18px; border-radius: 6px;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .hdr-btn:hover { border-color: var(--primary); background: var(--primary-dim); }
+    .hdr-btn.signed-in { border-color: #66CC88; color: #66CC88; }
+    #signed-in-lbl {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.55rem; letter-spacing: 2px;
+      color: #66CC88;
+    }
+
+    /* ── MAIN ───────────────────────────────────────────────── */
+    main {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 52px 20px 60px; gap: 48px;
+    }
+
+    .hero { text-align: center; }
+    .hero-title {
+      font-size: 4rem; font-weight: 900; letter-spacing: 6px;
+      color: var(--primary);
+      text-shadow: 0 0 40px rgba(153,102,255,0.45);
+      line-height: 1.1;
+    }
+    .hero-sub {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1rem; letter-spacing: 5px;
+      color: var(--cyan); margin-top: 10px; opacity: 0.7;
+    }
+    .hero-tag {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem; letter-spacing: 2px;
+      color: rgba(204,187,238,0.3); margin-top: 10px;
+    }
+
+    /* ── DIVIDER ────────────────────────────────────────────── */
+    .divider {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; max-width: 700px;
+    }
+    .divider .dl { flex: 1; height: 1px; background: rgba(153,102,255,0.2); }
+    .divider .dd { height: 6px; border-radius: 3px; }
+
+    /* ── GAME CARDS ─────────────────────────────────────────── */
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      width: 100%; max-width: 1400px;
+    }
+
+    .game-card {
+      display: flex; flex-direction: column;
+      background: rgba(8,0,22,0.85);
+      border: 2px solid;
+      border-radius: 16px;
+      padding: 36px 32px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .game-card::before {
+      content: ''; position: absolute; inset: 0; opacity: 0;
+      transition: opacity 0.25s;
+      border-radius: 14px;
+    }
+    .game-card:hover { transform: translateY(-4px); }
+    .game-card:hover::before { opacity: 1; }
+
+    .card-trek { border-color: rgba(255,153,0,0.3); }
+    .card-trek::before { background: rgba(255,153,0,0.04); }
+    .card-trek:hover { border-color: rgba(255,153,0,0.7); box-shadow: 0 0 32px rgba(255,153,0,0.2); }
+
+    .card-90s { border-color: rgba(255,20,147,0.3); }
+    .card-90s::before { background: rgba(255,20,147,0.04); }
+    .card-90s:hover { border-color: rgba(255,20,147,0.7); box-shadow: 0 0 32px rgba(255,20,147,0.2); }
+
+    .card-seinfeld { border-color: rgba(232,180,75,0.3); }
+    .card-seinfeld::before { background: rgba(232,180,75,0.04); }
+    .card-seinfeld:hover { border-color: rgba(232,180,75,0.7); box-shadow: 0 0 32px rgba(232,180,75,0.2); }
+
+    .card-simpsons { border-color: rgba(255,217,15,0.3); }
+    .card-simpsons::before { background: rgba(255,217,15,0.04); }
+    .card-simpsons:hover { border-color: rgba(255,217,15,0.7); box-shadow: 0 0 32px rgba(255,217,15,0.2); }
+
+    .card-80s { border-color: rgba(255,0,204,0.3); }
+    .card-80s::before { background: rgba(255,0,204,0.04); }
+    .card-80s:hover { border-color: rgba(255,0,204,0.7); box-shadow: 0 0 32px rgba(255,0,204,0.2); }
+
+    .card-office { border-color: rgba(91,155,213,0.3); }
+    .card-office::before { background: rgba(91,155,213,0.04); }
+    .card-office:hover { border-color: rgba(91,155,213,0.7); box-shadow: 0 0 32px rgba(91,155,213,0.2); }
+
+    .card-icon { font-size: 3.2rem; margin-bottom: 16px; }
+    .card-title {
+      font-size: 1.5rem; font-weight: 900; letter-spacing: 4px;
+      margin-bottom: 4px;
+    }
+    .card-trek .card-title { color: #FF9900; }
+    .card-90s .card-title { color: #FF1493; }
+    .card-seinfeld .card-title { color: #E8B44B; }
+    .card-simpsons .card-title { color: #FFD90F; }
+    .card-80s .card-title { color: #FF00CC; }
+    .card-office .card-title { color: #5B9BD5; }
+
+    .card-sub {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem; letter-spacing: 4px;
+      opacity: 0.6; margin-bottom: 14px;
+    }
+    .card-desc {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.82rem; color: rgba(204,187,238,0.6);
+      line-height: 1.6; flex: 1; margin-bottom: 20px;
+    }
+    .card-footer { display: flex; justify-content: space-between; align-items: center; }
+    .card-tag {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.58rem; letter-spacing: 2px;
+      opacity: 0.45;
+    }
+    .card-badge {
+      font-size: 0.58rem; font-weight: 700; letter-spacing: 3px;
+      padding: 4px 10px; border-radius: 20px;
+    }
+    .card-trek .card-badge { background: rgba(255,153,0,0.15); color: #FF9900; border: 1px solid rgba(255,153,0,0.35); }
+    .card-90s .card-badge { background: rgba(255,20,147,0.18); color: #FF1493; border: 1px solid rgba(255,20,147,0.4); }
+    .card-seinfeld .card-badge { background: rgba(232,180,75,0.15); color: #E8B44B; border: 1px solid rgba(232,180,75,0.35); }
+    .card-simpsons .card-badge { background: rgba(255,217,15,0.15); color: #FFD90F; border: 1px solid rgba(255,217,15,0.35); }
+    .card-80s .card-badge { background: rgba(255,0,204,0.15); color: #FF00CC; border: 1px solid rgba(255,0,204,0.35); }
+    .card-office .card-badge { background: rgba(91,155,213,0.15); color: #5B9BD5; border: 1px solid rgba(91,155,213,0.35); }
+
+    .card-play-btn {
+      margin-top: 18px;
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px;
+      padding: 13px 0;
+      border: 2px solid;
+      border-radius: 8px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 3px;
+      transition: all 0.2s;
+    }
+    .card-trek .card-play-btn { border-color: rgba(255,153,0,0.5); color: #FF9900; }
+    .card-trek:hover .card-play-btn { background: rgba(255,153,0,0.12); border-color: #FF9900; }
+    .card-90s .card-play-btn { border-color: rgba(255,20,147,0.5); color: #FF1493; }
+    .card-90s:hover .card-play-btn { background: rgba(255,20,147,0.12); border-color: #FF1493; }
+    .card-seinfeld .card-play-btn { border-color: rgba(232,180,75,0.5); color: #E8B44B; }
+    .card-seinfeld:hover .card-play-btn { background: rgba(232,180,75,0.12); border-color: #E8B44B; }
+    .card-simpsons .card-play-btn { border-color: rgba(255,217,15,0.5); color: #FFD90F; }
+    .card-simpsons:hover .card-play-btn { background: rgba(255,217,15,0.12); border-color: #FFD90F; }
+    .card-80s .card-play-btn { border-color: rgba(255,0,204,0.5); color: #FF00CC; }
+    .card-80s:hover .card-play-btn { background: rgba(255,0,204,0.12); border-color: #FF00CC; }
+    .card-office .card-play-btn { border-color: rgba(91,155,213,0.5); color: #5B9BD5; }
+    .card-office:hover .card-play-btn { background: rgba(91,155,213,0.12); border-color: #5B9BD5; }
+
+    /* ── LEADERBOARD OVERLAY ────────────────────────────────── */
+    #lb-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,10,0.92);
+      z-index: 600; align-items: center; justify-content: center;
+    }
+    #lb-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .lb-card {
+      background: #08001a; border: 3px solid var(--primary);
+      border-radius: 14px; padding: 36px 48px;
+      max-width: 720px; width: 94%; max-height: 82vh;
+      overflow-y: auto;
+      animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .lb-hdr {
+      font-size: 1.1rem; font-weight: 900; letter-spacing: 6px;
+      color: var(--primary); margin-bottom: 4px; text-align: center;
+    }
+    .lb-sub {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.58rem; color: rgba(204,187,238,0.4);
+      letter-spacing: 3px; text-align: center; margin-bottom: 22px;
+    }
+
+    /* Tabs */
+    .lb-tabs {
+      display: flex; gap: 0; margin-bottom: 20px;
+      border-bottom: 2px solid rgba(153,102,255,0.2);
+    }
+    .lb-tab {
+      background: transparent;
+      border: none; border-bottom: 3px solid transparent; margin-bottom: -2px;
+      color: rgba(204,187,238,0.45);
+      font-family: 'Orbitron', sans-serif; font-size: 0.62rem;
+      letter-spacing: 3px; padding: 8px 20px; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lb-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .lb-tab:hover:not(.active) { color: rgba(204,187,238,0.8); }
+
+    .lb-panel { display: none; }
+    .lb-panel.active { display: block; }
+
+    .lb-table { width: 100%; border-collapse: collapse; }
+    .lb-th { font-family: 'Share Tech Mono', monospace; font-size: 0.52rem; letter-spacing: 2px; color: var(--cyan); padding: 6px 10px; text-align: left; border-bottom: 1px solid rgba(68,204,255,0.2); }
+    .lb-th.num { text-align: right; }
+    .lb-row { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
+    .lb-row:hover { background: rgba(153,102,255,0.04); }
+    .lb-row.lb-top { background: rgba(153,102,255,0.08); }
+    .lb-td { font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; color: #fff; padding: 10px 10px; }
+    .lb-td.num { text-align: right; color: var(--gold); }
+    .lb-td.rank { text-align: center; font-size: 1rem; width: 36px; }
+    .lb-empty { text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: rgba(204,187,238,0.3); padding: 32px; letter-spacing: 2px; }
+    .lb-footer { display: flex; gap: 12px; justify-content: flex-end; align-items: center; margin-top: 24px; flex-wrap: wrap; }
+    .lb-close-btn { background: transparent; border: 2px solid var(--primary); color: var(--primary); font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 3px; padding: 9px 24px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+    .lb-close-btn:hover { background: var(--primary); color: #000; }
+
+    /* ── AUTH MODAL ─────────────────────────────────────────── */
+    #auth-modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,10,0.88);
+      z-index: 800; align-items: center; justify-content: center;
+    }
+    #auth-modal.show { display: flex; animation: fadeIn 0.15s ease; }
+    .auth-card {
+      background: #08001a; border: 3px solid var(--cyan);
+      border-radius: 14px; padding: 36px 44px;
+      text-align: center; max-width: 380px; width: 90%;
+      animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .auth-tabs { display: flex; gap: 0; margin-bottom: 22px; border-bottom: 2px solid rgba(68,204,255,0.2); }
+    .auth-tab {
+      flex: 1; background: transparent; border: none; border-bottom: 3px solid transparent;
+      margin-bottom: -2px; color: rgba(204,187,238,0.4);
+      font-family: 'Orbitron', sans-serif; font-size: 0.62rem; letter-spacing: 3px;
+      padding: 10px 0; cursor: pointer; transition: all 0.2s;
+    }
+    .auth-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+    .auth-tab:hover:not(.active) { color: rgba(204,187,238,0.75); }
+    .auth-player-lbl { font-size: 1.3rem; font-weight: 900; letter-spacing: 3px; color: var(--primary); margin-bottom: 18px; }
+    .auth-field-lbl { font-family: 'Share Tech Mono', monospace; font-size: 0.52rem; letter-spacing: 2px; color: rgba(204,187,238,0.5); text-align: left; margin-bottom: 4px; margin-top: 12px; }
+    .auth-name-input, .auth-input {
+      background: rgba(6,0,14,0.8); border: 1px solid rgba(68,204,255,0.4);
+      border-radius: 4px; color: #fff; font-family: 'Share Tech Mono', monospace;
+      font-size: 1rem; padding: 10px 14px; outline: none; width: 100%;
+      text-align: center; letter-spacing: 2px; transition: border-color 0.2s;
+    }
+    .auth-name-input:focus, .auth-input:focus { border-color: var(--cyan); }
+    .auth-err { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: #FF4444; margin-top: 8px; margin-bottom: 4px; min-height: 1.2em; }
+    .auth-new-hint { font-family: 'Share Tech Mono', monospace; font-size: 0.55rem; color: rgba(204,187,238,0.35); margin-top: 10px; letter-spacing: 1px; }
+    .auth-btns { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
+    .auth-confirm { background: var(--cyan); color: #000; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 3px; padding: 9px 24px; border: none; border-radius: 5px; cursor: pointer; transition: all 0.2s; font-weight: 700; }
+    .auth-confirm:hover { background: #77DDFF; }
+    .auth-cancel { background: transparent; border: 2px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 3px; padding: 9px 24px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+    .auth-cancel:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+
+    /* ── FOOTER ─────────────────────────────────────────────── */
+    footer {
+      position: relative; z-index: 1;
+      text-align: center;
+      padding: 20px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 2px;
+      color: rgba(153,102,255,0.25);
+    }
+  </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<!-- ══ LEADERBOARD OVERLAY ═══════════════════════════════════ -->
+<div id="lb-overlay">
+  <div class="lb-card">
+    <div class="lb-hdr">🏆 HALL OF FAME</div>
+    <div class="lb-sub">TRIVIA VAULT — ALL-TIME RANKINGS</div>
+    <div class="lb-tabs">
+      <button class="lb-tab active" onclick="switchLbTab('trek')">🖖 TREK TRIVIA</button>
+      <button class="lb-tab" onclick="switchLbTab('90s')">📼 90s TRIVIA</button>
+      <button class="lb-tab" onclick="switchLbTab('seinfeld')">☕ SEINFELD</button>
+      <button class="lb-tab" onclick="switchLbTab('80s')">📼 80s TRIVIA</button>
+      <button class="lb-tab" onclick="switchLbTab('simpsons')">🍩 SIMPSONS</button>
+    </div>
+    <div id="lb-trek-panel" class="lb-panel active"></div>
+    <div id="lb-90s-panel" class="lb-panel"></div>
+    <div id="lb-seinfeld-panel" class="lb-panel"></div>
+    <div id="lb-80s-panel" class="lb-panel"></div>
+    <div id="lb-simpsons-panel" class="lb-panel"></div>
+    <div class="lb-footer">
+      <button class="lb-close-btn" onclick="closeLeaderboard()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AUTH MODAL ══════════════════════════════════════════════ -->
+<div id="auth-modal">
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="auth-tab-signin" onclick="setAuthTab('signin')">SIGN IN</button>
+      <button class="auth-tab" id="auth-tab-register" onclick="setAuthTab('register')">REGISTER</button>
+    </div>
+    <div class="auth-player-lbl" id="auth-player-lbl">VAULT MEMBER</div>
+    <div class="auth-field-lbl">YOUR NAME</div>
+    <input type="text" class="auth-name-input" id="auth-name" placeholder="ENTER NAME"
+           oninput="onNameInput()" maxlength="20">
+    <div id="auth-name-status" style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:rgba(204,187,238,0.4);text-align:left;margin-top:4px;min-height:1em;"></div>
+    <div class="auth-field-lbl">PASSWORD</div>
+    <input type="password" class="auth-input" id="auth-pw" placeholder="••••••••"
+           onkeydown="if(event.key==='Enter')submitAuth()">
+    <div id="auth-pw2-wrap" style="display:none">
+      <div class="auth-field-lbl">CONFIRM PASSWORD</div>
+      <input type="password" class="auth-input" id="auth-pw2" placeholder="••••••••"
+             onkeydown="if(event.key==='Enter')submitAuth()">
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+    <div class="auth-new-hint" id="auth-new-hint"></div>
+    <div class="auth-btns">
+      <button class="auth-cancel" onclick="cancelAuth()">CANCEL</button>
+      <button class="auth-confirm" id="auth-confirm-btn" onclick="submitAuth()">CONFIRM</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════ -->
+<header>
+  <div class="vault-bar">
+    <div class="vault-logo">
+      <div class="vault-logo-icon">⭐</div>
+      <div>
+        <div class="vault-logo-title">TRIVIA VAULT</div>
+        <div class="vault-logo-sub">CHOOSE YOUR CHALLENGE</div>
+      </div>
+    </div>
+    <div class="vault-actions">
+      <span id="signed-in-lbl" style="display:none"></span>
+      <button class="hdr-btn" id="sign-in-btn" onclick="openAuthModal()">👤 SIGN IN</button>
+      <button class="hdr-btn" onclick="showLeaderboard()">🏆 LEADERBOARD</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══ MAIN ═══════════════════════════════════════════════════ -->
+<main>
+  <div class="hero">
+    <div class="hero-title">PICK YOUR TRIVIA</div>
+    <div class="hero-sub">JEOPARDY-STYLE · 6 CATEGORIES · 30 QUESTIONS</div>
+    <div class="hero-tag">SIGN IN TO TRACK YOUR WINS ON THE LEADERBOARD</div>
+  </div>
+
+  <div class="divider">
+    <div class="dl"></div>
+    <div class="dd" style="width:40px;background:#9966FF;"></div>
+    <div class="dd" style="width:12px;background:#44CCFF;"></div>
+    <div class="dd" style="width:12px;background:#FF9944;"></div>
+    <div class="dd" style="width:40px;background:#9966FF;"></div>
+    <div class="dl"></div>
+  </div>
+
+  <div class="games-grid">
+    <!-- STAR TREK TNG -->
+    <a class="game-card card-trek" href="trek/index.html">
+      <div class="card-icon">🖖</div>
+      <div class="card-title">TREK TRIVIA</div>
+      <div class="card-sub">THE NEXT GENERATION</div>
+      <div class="card-desc">
+        Test your knowledge of the 24th century — crew & characters, ships & technology, classic episodes, aliens & species, famous quotes, and Starfleet lore.
+      </div>
+      <div class="card-footer">
+        <span class="card-tag">6 CATEGORIES · 30 CLUES</span>
+        <span class="card-badge">CLASSIC</span>
+      </div>
+      <div class="card-play-btn">⚡ ENGAGE</div>
+    </a>
+
+    <!-- 90s TRIVIA -->
+    <a class="game-card card-90s" href="90s/index.html">
+      <div class="card-icon">📼</div>
+      <div class="card-title">90s TRIVIA</div>
+      <div class="card-sub">POP CULTURE JAM</div>
+      <div class="card-desc">
+        Relive the decade that defined a generation — 90s movies, music, must-see TV, fashion &amp; fads, video games, and pop icons.
+      </div>
+      <div class="card-footer">
+        <span class="card-tag">6 CATEGORIES · 30 CLUES</span>
+        <span class="card-badge">NEW</span>
+      </div>
+      <div class="card-play-btn">📼 START IT UP</div>
+    </a>
+
+    <!-- SEINFELD TRIVIA -->
+    <a class="game-card card-seinfeld" href="Seinfeld/index.html">
+      <div class="card-icon">☕</div>
+      <div class="card-title">SEINFELD TRIVIA</div>
+      <div class="card-sub">A SHOW ABOUT NOTHING</div>
+      <div class="card-desc">
+        Test your knowledge of Jerry, George, Elaine &amp; Kramer — episodes, quotes, running gags, guest stars, and the gang at Monk's Café.
+      </div>
+      <div class="card-footer">
+        <span class="card-tag">6 CATEGORIES · 30 CLUES</span>
+        <span class="card-badge">NEW</span>
+      </div>
+      <div class="card-play-btn">☕ NO SOUP FOR YOU</div>
+    </a>
+
+    <!-- SIMPSONS TRIVIA -->
+    <a class="game-card card-simpsons" href="Simpsons/index.html">
+      <div class="card-icon">🍩</div>
+      <div class="card-title">SIMPSONS TRIVIA</div>
+      <div class="card-sub">SEASONS 1 THROUGH 10</div>
+      <div class="card-desc">
+        D'oh! How well do you know Springfield? Characters, episodes, quotes, and classic moments from the golden age of the show.
+      </div>
+      <div class="card-footer">
+        <span class="card-tag">6 CATEGORIES · 30 CLUES</span>
+        <span class="card-badge">NEW</span>
+      </div>
+      <div class="card-play-btn">🍩 D'OH! LET'S PLAY</div>
+    </a>
+
+    <!-- 80s TRIVIA -->
+    <a class="game-card card-80s" href="80s/index.html">
+      <div class="card-icon">📼</div>
+      <div class="card-title">80s TRIVIA</div>
+      <div class="card-sub">TOTALLY RADICAL!</div>
+      <div class="card-desc">
+        Like, totally test your 80s knowledge — movies, music, TV, video games, fads &amp; fashion, and the iconic moments that defined a decade.
+      </div>
+      <div class="card-footer">
+        <span class="card-tag">6 CATEGORIES · 30 CLUES</span>
+        <span class="card-badge">NEW</span>
+      </div>
+      <div class="card-play-btn">📼 LET'S JAM</div>
+    </a>
+
+    <!-- THE OFFICE TRIVIA -->
+    <a class="game-card card-office" href="The_Office/index.html">
+      <div class="card-icon">📎</div>
+      <div class="card-title">THE OFFICE</div>
+      <div class="card-sub">DUNDER MIFFLIN EDITION</div>
+      <div class="card-desc">
+        Test your knowledge of Scranton's finest paper company — characters, episodes, quotes, relationships, and all the "that's what she said" moments.
+      </div>
+      <div class="card-footer">
+        <span class="card-tag">6 CATEGORIES · 30 CLUES</span>
+        <span class="card-badge">NEW</span>
+      </div>
+      <div class="card-play-btn">📎 THAT'S WHAT SHE SAID</div>
+    </a>
+  </div>
+</main>
+
+<footer>
+  TRIVIA VAULT &nbsp;·&nbsp; SIGN IN TO SAVE YOUR SCORES &nbsp;·&nbsp; ACCOUNTS ARE SHARED ACROSS ALL TRIVIA GAMES
+</footer>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// STARS BACKGROUND
+// ════════════════════════════════════════════════════════════
+(function() {
+  const cv = document.getElementById('stars'), ctx = cv.getContext('2d');
+  function resize() { cv.width = innerWidth; cv.height = innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  const stars = Array.from({length:200},()=>({
+    x:Math.random(), y:Math.random(), sz:Math.random()*1.7+0.3,
+    op:Math.random()*0.5+0.15, ph:Math.random()*Math.PI*2, sp:Math.random()*0.7+0.3
+  }));
+  function draw() {
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const t = Date.now()*0.001;
+    for(const s of stars){
+      ctx.beginPath();
+      ctx.arc(s.x*cv.width, s.y*cv.height, s.sz, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${s.op*(0.65+0.35*Math.sin(t*s.sp+s.ph))})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ════════════════════════════════════════════════════════════
+// ACCOUNTS (shared: trek_trivia_accounts)
+// ════════════════════════════════════════════════════════════
+const ACC_KEY = 'trek_trivia_accounts';
+let _currentUser = null;
+
+function hashPw(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = Math.imul(h * 33 ^ str.charCodeAt(i), 1);
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+function loadAccounts() {
+  try { return JSON.parse(localStorage.getItem(ACC_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveAccounts(data) { localStorage.setItem(ACC_KEY, JSON.stringify(data)); }
+
+// Check if user was stored (persistent across sessions)
+function initSignedInState() {
+  const stored = localStorage.getItem('trivia_vault_user');
+  if (stored) {
+    _currentUser = stored;
+    updateSignedInUI();
+  }
+}
+
+function updateSignedInUI() {
+  const lbl = document.getElementById('signed-in-lbl');
+  const btn = document.getElementById('sign-in-btn');
+  if (_currentUser) {
+    lbl.textContent = '✅ ' + _currentUser;
+    lbl.style.display = 'inline';
+    btn.textContent = '🔓 SIGN OUT';
+    btn.classList.add('signed-in');
+    btn.onclick = signOut;
+  } else {
+    lbl.style.display = 'none';
+    btn.textContent = '👤 SIGN IN';
+    btn.classList.remove('signed-in');
+    btn.onclick = openAuthModal;
+  }
+}
+
+function signOut() {
+  _currentUser = null;
+  localStorage.removeItem('trivia_vault_user');
+  updateSignedInUI();
+}
+
+// ── Auth Modal ─────────────────────────────────────────────
+let _authMode = 'signin'; // 'signin' or 'register'
+
+function openAuthModal() {
+  document.getElementById('auth-name').value = '';
+  document.getElementById('auth-pw').value = '';
+  document.getElementById('auth-pw2').value = '';
+  document.getElementById('auth-err').textContent = '';
+  document.getElementById('auth-new-hint').textContent = '';
+  document.getElementById('auth-name-status').textContent = '';
+  document.getElementById('auth-modal').classList.add('show');
+  setAuthTab('signin');
+  setTimeout(() => document.getElementById('auth-name').focus(), 80);
+}
+
+function setAuthTab(mode) {
+  _authMode = mode;
+  document.getElementById('auth-tab-signin').classList.toggle('active', mode === 'signin');
+  document.getElementById('auth-tab-register').classList.toggle('active', mode === 'register');
+  document.getElementById('auth-pw2-wrap').style.display = mode === 'register' ? 'block' : 'none';
+  document.getElementById('auth-confirm-btn').textContent = mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT';
+  document.getElementById('auth-err').textContent = '';
+  document.getElementById('auth-new-hint').textContent = mode === 'register' ? 'Minimum 4 characters.' : '';
+  document.getElementById('auth-name-status').textContent = '';
+  // Re-run name validation for the new mode
+  onNameInput();
+}
+
+function onNameInput() {
+  const name = document.getElementById('auth-name').value.trim().toUpperCase();
+  const statusEl = document.getElementById('auth-name-status');
+  if (!name) { statusEl.textContent = ''; return; }
+  const accounts = loadAccounts();
+  const exists = accounts.some(a => a.name === name);
+  if (_authMode === 'signin') {
+    if (exists) {
+      statusEl.textContent = '✓ ACCOUNT FOUND';
+      statusEl.style.color = '#44CCFF';
+    } else {
+      statusEl.textContent = 'NO ACCOUNT WITH THAT NAME';
+      statusEl.style.color = 'rgba(255,100,100,0.8)';
+    }
+  } else {
+    if (exists) {
+      statusEl.textContent = 'NAME ALREADY TAKEN';
+      statusEl.style.color = 'rgba(255,100,100,0.8)';
+    } else {
+      statusEl.textContent = '✓ NAME AVAILABLE';
+      statusEl.style.color = '#44CCFF';
+    }
+  }
+}
+
+function cancelAuth() {
+  document.getElementById('auth-modal').classList.remove('show');
+}
+
+function submitAuth() {
+  const name = document.getElementById('auth-name').value.trim().toUpperCase();
+  const pw   = document.getElementById('auth-pw').value;
+  const pw2  = document.getElementById('auth-pw2').value;
+  const errEl = document.getElementById('auth-err');
+  errEl.textContent = '';
+
+  if (!name) { errEl.textContent = 'ENTER YOUR NAME'; return; }
+  if (!pw)   { errEl.textContent = 'PASSWORD REQUIRED'; return; }
+
+  const accounts = loadAccounts();
+  const entry = accounts.find(a => a.name === name);
+
+  if (_authMode === 'signin') {
+    if (!entry) { errEl.textContent = 'NO ACCOUNT WITH THAT NAME'; return; }
+    if (hashPw(pw) !== entry.hash) {
+      errEl.textContent = 'INCORRECT PASSWORD';
+      document.getElementById('auth-pw').value = '';
+      document.getElementById('auth-pw').focus();
+      return;
+    }
+  } else {
+    // Register
+    if (entry) { errEl.textContent = 'NAME ALREADY TAKEN — CHOOSE ANOTHER'; return; }
+    if (pw.length < 4) { errEl.textContent = 'PASSWORD TOO SHORT (MIN 4)'; return; }
+    if (pw !== pw2)    { errEl.textContent = 'PASSWORDS DO NOT MATCH'; return; }
+    accounts.push({ name, hash: hashPw(pw), createdAt: new Date().toISOString().slice(0,10) });
+    saveAccounts(accounts);
+  }
+
+  _currentUser = name;
+  localStorage.setItem('trivia_vault_user', name);
+  updateSignedInUI();
+  document.getElementById('auth-modal').classList.remove('show');
+}
+
+// ════════════════════════════════════════════════════════════
+// LEADERBOARD (reads Trek + 90s)
+// ════════════════════════════════════════════════════════════
+const TREK_LB_KEY = 'trek_trivia_leaderboard';
+const NINETIES_LB_KEY = '90s_trivia_leaderboard';
+const SEINFELD_LB_KEY = 'seinfeld_trivia_leaderboard';
+const EIGHTIES_LB_KEY = '80s_trivia_leaderboard';
+const SIMPSONS_LB_KEY = 'simpsons_trivia_leaderboard';
+let _activeLbTab = 'trek';
+
+function loadLB(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; }
+}
+
+function renderLbTable(data) {
+  const sorted = [...data].sort((a,b) => b.wins - a.wins || b.bestScore - a.bestScore);
+  const medals = ['🥇','🥈','🥉'];
+  if (sorted.length === 0) {
+    return '<div class="lb-empty">NO RECORDS YET — PLAY A GAME TO BEGIN</div>';
+  }
+  return `<table class="lb-table">
+    <thead><tr>
+      <th class="lb-th">#</th>
+      <th class="lb-th">NAME</th>
+      <th class="lb-th num">WINS</th>
+      <th class="lb-th num">GAMES</th>
+      <th class="lb-th num">BEST SCORE</th>
+      <th class="lb-th num">LAST PLAYED</th>
+    </tr></thead>
+    <tbody>${sorted.map((e,i)=>`
+      <tr class="lb-row${i===0?' lb-top':''}">
+        <td class="lb-td rank">${medals[i]||(i+1)}</td>
+        <td class="lb-td">${e.name}</td>
+        <td class="lb-td num">${e.wins}</td>
+        <td class="lb-td num">${e.gamesPlayed}</td>
+        <td class="lb-td num">$${Math.max(0,e.bestScore).toLocaleString()}</td>
+        <td class="lb-td num">${e.lastPlayed||'—'}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function showLeaderboard() {
+  document.getElementById('lb-trek-panel').innerHTML     = renderLbTable(loadLB(TREK_LB_KEY));
+  document.getElementById('lb-90s-panel').innerHTML      = renderLbTable(loadLB(NINETIES_LB_KEY));
+  document.getElementById('lb-seinfeld-panel').innerHTML = renderLbTable(loadLB(SEINFELD_LB_KEY));
+  document.getElementById('lb-80s-panel').innerHTML      = renderLbTable(loadLB(EIGHTIES_LB_KEY));
+  document.getElementById('lb-simpsons-panel').innerHTML = renderLbTable(loadLB(SIMPSONS_LB_KEY));
+  switchLbTab(_activeLbTab);
+  document.getElementById('lb-overlay').classList.add('show');
+}
+
+function switchLbTab(tab) {
+  _activeLbTab = tab;
+  document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.lb-panel').forEach(p => p.classList.remove('active'));
+  const tabIndex = ['trek', '90s', 'seinfeld', '80s', 'simpsons'].indexOf(tab);
+  document.querySelectorAll('.lb-tab')[tabIndex < 0 ? 0 : tabIndex].classList.add('active');
+  document.getElementById(`lb-${tab}-panel`).classList.add('active');
+}
+
+function closeLeaderboard() {
+  document.getElementById('lb-overlay').classList.remove('show');
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+initSignedInState();
+</script>
+</body>
+</html>
