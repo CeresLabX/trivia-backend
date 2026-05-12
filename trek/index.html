@@ -1,0 +1,2067 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trek Trivia: The Next Generation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --space: #000814;
+      --jep-blue: #000F3C;
+      --jep-blue-hover: #001B72;
+      --lcars-orange: #FF9900;
+      --gold: #FFC300;
+      --text: #FFCC99;
+    }
+
+    body {
+      background: var(--space);
+      color: var(--text);
+      font-family: 'Orbitron', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    canvas#stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    .screen { display: none; position: relative; z-index: 1; min-height: 100vh; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* ── LCARS BAR ───────────────────────────────────────── */
+    .lcars-bar { display: flex; align-items: stretch; height: 66px; flex-shrink: 0; }
+    .lcars-bar .bl { background: var(--lcars-orange); width: 100px; border-radius: 0 0 0 33px; flex-shrink: 0; }
+    .lcars-bar .bg { width: 6px; background: var(--space); flex-shrink: 0; }
+    .lcars-bar .bi {
+      flex: 1; background: var(--space); display: flex; align-items: center;
+      padding: 0 18px; border-bottom: 2px solid rgba(255,153,0,0.2);
+    }
+    .lcars-bar .bi span { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; color: #7799FF; letter-spacing: 2px; }
+    .lcars-bar .br {
+      background: var(--lcars-orange); width: 160px; border-radius: 0 0 80px 0; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 2px; color: rgba(0,0,0,0.55);
+    }
+
+    .content {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 16px 16px 24px; gap: 14px; max-width: 1600px; margin: 0 auto; width: 100%;
+    }
+
+    /* ── SETUP ───────────────────────────────────────────── */
+    .hero { text-align: center; }
+    .hero-title { font-size: 5rem; font-weight: 900; color: var(--lcars-orange); letter-spacing: 6px; text-shadow: 0 0 30px rgba(255,153,0,0.5); }
+    .hero-sub { font-size: 1.8rem; color: #7799FF; letter-spacing: 5px; margin-top: 6px; }
+    .hero-tag { font-family: 'Share Tech Mono', monospace; font-size: 1.1rem; color: rgba(255,204,153,0.4); letter-spacing: 2px; margin-top: 8px; }
+
+    .setup-lbl {
+      font-size: 1rem; letter-spacing: 4px; color: var(--lcars-orange);
+      display: flex; align-items: center; gap: 12px; width: 100%; max-width: 1100px;
+      margin-bottom: -4px;
+    }
+    .setup-lbl::before, .setup-lbl::after {
+      content: ''; flex: 1; height: 1px; background: rgba(255,153,0,0.25);
+    }
+
+    .count-row { display: flex; gap: 16px; }
+    .count-btn {
+      width: 80px; height: 80px; border-radius: 50%; border: 2px solid rgba(255,153,0,0.4);
+      background: transparent; color: var(--lcars-orange); font-family: 'Orbitron', sans-serif;
+      font-size: 1.8rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .count-btn:hover { border-color: var(--lcars-orange); background: rgba(255,153,0,0.1); }
+    .count-btn.active { background: var(--lcars-orange); color: #000; }
+
+    .pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1100px; }
+    .pcard { background: rgba(255,153,0,0.06); border: 2px solid rgba(255,153,0,0.2); border-radius: 12px; padding: 22px 26px; display: flex; flex-direction: column; gap: 10px; }
+    .pcard label { font-size: 1rem; letter-spacing: 3px; color: var(--lcars-orange); }
+    .pcard input { background: rgba(0,8,20,0.8); border: 1px solid rgba(255,153,0,0.3); border-radius: 6px; color: #fff; font-family: 'Share Tech Mono', monospace; font-size: 1.5rem; padding: 12px 16px; outline: none; transition: border-color 0.2s; }
+    .pcard input:focus { border-color: var(--lcars-orange); }
+
+    .engage-btn {
+      background: var(--lcars-orange); color: #000; font-family: 'Orbitron', sans-serif;
+      font-weight: 900; font-size: 1.8rem; letter-spacing: 5px; padding: 22px 100px;
+      border: none; border-radius: 50px; cursor: pointer; transition: all 0.25s;
+      box-shadow: 0 0 25px rgba(255,153,0,0.3);
+    }
+    .engage-btn:hover { box-shadow: 0 0 50px rgba(255,153,0,0.65); transform: scale(1.04); }
+
+    .rules-note { font-family: 'Share Tech Mono', monospace; font-size: 1.05rem; color: rgba(255,204,153,0.3); text-align: center; max-width: 900px; line-height: 1.7; }
+    .options-row { display: flex; flex-wrap: wrap; gap: 14px; width: 100%; max-width: 1100px; }
+    .opt-toggle { display: flex; align-items: center; gap: 12px; background: rgba(255,153,0,0.06); border: 1.5px solid rgba(255,153,0,0.2); border-radius: 9px; padding: 14px 22px; cursor: pointer; transition: border-color 0.2s; }
+    .opt-toggle:hover { border-color: rgba(255,153,0,0.5); }
+    .opt-toggle input[type=checkbox] { width: 22px; height: 22px; cursor: pointer; accent-color: var(--lcars-orange); flex-shrink: 0; }
+    .opt-toggle span { font-family: 'Share Tech Mono', monospace; font-size: 1rem; letter-spacing: 2px; color: rgba(255,204,153,0.7); }
+
+    /* ── PLAYER HUD ──────────────────────────────────────── */
+    #player-hud { display: flex; gap: 10px; width: 100%; justify-content: center; flex-wrap: wrap; max-width: 1600px; }
+    .pc {
+      flex: 1; min-width: 200px; max-width: 340px;
+      background: rgba(0,8,30,0.9); border: 2px solid rgba(255,153,0,0.15);
+      border-radius: 9px; padding: 14px 18px; transition: all 0.3s;
+    }
+    .pc.active { border-color: var(--lcars-orange); box-shadow: 0 0 18px rgba(255,153,0,0.3); }
+    .pc-name { font-size: 1rem; font-weight: 700; letter-spacing: 2px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
+    .pc-name .arr { color: var(--lcars-orange); }
+    .pc-score { font-family: 'Share Tech Mono', monospace; font-size: 2rem; color: var(--gold); }
+    .pc-score.negative { color: #FF5555; }
+
+    /* ── TURN BAR ────────────────────────────────────────── */
+    #turn-bar { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 1600px; }
+    #turn-bar .tb-left { font-family: 'Share Tech Mono', monospace; font-size: 1rem; color: rgba(119,153,255,0.7); letter-spacing: 2px; }
+    #turn-bar .tb-name { font-size: 1.8rem; font-weight: 900; color: var(--lcars-orange); letter-spacing: 3px; }
+    #turn-bar .tb-right { font-family: 'Share Tech Mono', monospace; font-size: 1rem; color: rgba(255,204,153,0.5); letter-spacing: 1px; text-align: right; }
+
+    /* ── JEOPARDY BOARD ──────────────────────────────────── */
+    #board-wrap { width: 100%; max-width: 1600px; }
+    #jeopardy-board {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+    }
+
+    .bh {
+      background: var(--jep-blue);
+      border: 2px solid;
+      border-radius: 7px;
+      padding: 16px 8px;
+      text-align: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+      min-height: 130px;
+    }
+    .bh .bh-icon { font-size: 2.4rem; }
+    .bh .bh-name { font-size: 1.05rem; font-weight: 700; letter-spacing: 1px; line-height: 1.3; text-transform: uppercase; }
+
+    .bc {
+      background: var(--jep-blue);
+      border: 2px solid rgba(100,140,255,0.2);
+      border-radius: 7px;
+      cursor: pointer;
+      text-align: center;
+      padding: 14px 8px;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 2.4rem;
+      color: var(--gold);
+      transition: all 0.2s;
+      min-height: 110px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .bc:hover { background: var(--jep-blue-hover); border-color: rgba(200,200,255,0.5); transform: scale(1.04); box-shadow: 0 0 14px rgba(100,140,255,0.3); }
+    /* Daily Double is hidden — no special board styling */
+
+    /* ── QUESTION TIMER ──────────────────────────────────── */
+    #q-timer-wrap {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 22px 0;
+    }
+    #q-timer-bar-bg {
+      flex: 1; height: 6px; background: rgba(255,255,255,0.08);
+      border-radius: 3px; overflow: hidden;
+    }
+    #q-timer-bar {
+      height: 100%; width: 100%; border-radius: 3px;
+      background: #66CC66;
+      transition: width 1s linear, background 0.5s;
+    }
+    #q-timer-bar.warn  { background: #FFC300; }
+    #q-timer-bar.urgent { background: #FF4444; }
+    #q-timer-lbl {
+      font-family: 'Orbitron', sans-serif; font-weight: 700;
+      font-size: 0.75rem; color: #66CC66; min-width: 30px;
+      text-align: right; transition: color 0.5s;
+    }
+    #q-timer-lbl.warn   { color: #FFC300; }
+    #q-timer-lbl.urgent { color: #FF4444; }
+    .bc.answered {
+      background: rgba(0,5,20,0.6);
+      border-color: rgba(255,255,255,0.04);
+      cursor: default;
+      color: rgba(255,255,255,0.07);
+      transform: none;
+      box-shadow: none;
+    }
+    .bc.answered:hover { transform: none; box-shadow: none; }
+
+    /* ── QUESTION OVERLAY ────────────────────────────────── */
+    #q-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,4,18,0.96);
+      z-index: 100; flex-direction: column; align-items: center; justify-content: center; padding: 24px;
+    }
+    #q-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .q-wrap { width: 100%; max-width: 1100px; display: flex; flex-direction: column; gap: 16px; }
+
+    .q-top-bar {
+      padding: 14px 22px; border-radius: 9px 9px 0 0;
+      font-size: 1.1rem; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .q-top-bar .qtb-cat { display: flex; align-items: center; gap: 10px; }
+    .q-top-bar .qtb-val { font-size: 1.5rem; font-weight: 900; }
+    .q-top-bar .qtb-player {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 1px;
+    }
+    .qtb-player-lbl { font-size: 0.52rem; letter-spacing: 4px; opacity: 0.6; font-weight: 400; }
+    .qtb-player-name { font-size: 1.1rem; font-weight: 900; letter-spacing: 3px; }
+    .q-top-bar { position: relative; }
+
+    #q-text {
+      background: rgba(0,10,35,0.98); border: 2px solid; border-top: none;
+      padding: 32px 36px; font-family: 'Share Tech Mono', monospace;
+      font-size: 1.8rem; line-height: 1.6; color: #fff; min-height: 120px;
+    }
+
+    #q-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .ab {
+      background: rgba(0,15,50,0.95); border: 2px solid rgba(119,153,255,0.3); border-radius: 8px;
+      color: #fff; font-family: 'Share Tech Mono', monospace; font-size: 1.4rem;
+      padding: 22px 20px; cursor: pointer; text-align: left; transition: all 0.2s;
+      display: flex; gap: 16px; align-items: center; line-height: 1.4;
+    }
+    .ab:hover:not(:disabled) { border-color: #7799FF; background: rgba(119,153,255,0.12); transform: translateY(-1px); }
+    .ab .al { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 1.2rem; min-width: 28px; color: #7799FF; flex-shrink: 0; }
+    .ab:disabled { cursor: default; transform: none; }
+    .ab.correct { border-color: #66CC66; background: rgba(102,204,102,0.15); }
+    .ab.correct .al { color: #66CC66; }
+    .ab.wrong { border-color: #FF4444; background: rgba(255,68,68,0.15); }
+    .ab.wrong .al { color: #FF4444; }
+
+    /* Daily Double wager screen */
+    #dd-screen {
+      display: none; flex-direction: column; align-items: center; gap: 20px; text-align: center;
+    }
+    #dd-screen.show { display: flex; }
+    .dd-title { font-size: 2rem; font-weight: 900; color: var(--gold); letter-spacing: 4px; text-shadow: 0 0 30px rgba(255,195,0,0.6); }
+    .dd-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: rgba(255,204,153,0.6); letter-spacing: 2px; }
+    .dd-range { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--gold); }
+    .wager-row { display: flex; align-items: center; gap: 12px; }
+    .wager-adj {
+      width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(255,195,0,0.5);
+      background: transparent; color: var(--gold); font-size: 1.2rem; cursor: pointer;
+      font-family: 'Orbitron', sans-serif; transition: all 0.2s;
+    }
+    .wager-adj:hover { background: rgba(255,195,0,0.15); border-color: var(--gold); }
+    #wager-display { font-family: 'Orbitron', monospace; font-size: 2rem; font-weight: 900; color: var(--gold); min-width: 130px; text-align: center; }
+    .wager-presets { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .wp-btn {
+      background: transparent; border: 1px solid rgba(255,195,0,0.4); color: var(--gold);
+      font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; padding: 6px 14px;
+      border-radius: 4px; cursor: pointer; transition: all 0.2s;
+    }
+    .wp-btn:hover { background: rgba(255,195,0,0.15); }
+    .wager-go-btn {
+      background: var(--gold); color: #000; font-family: 'Orbitron', sans-serif;
+      font-weight: 900; font-size: 0.85rem; letter-spacing: 3px; padding: 13px 40px;
+      border: none; border-radius: 50px; cursor: pointer; transition: all 0.2s;
+    }
+    .wager-go-btn:hover { box-shadow: 0 0 25px rgba(255,195,0,0.5); transform: scale(1.03); }
+
+    /* ── RESULT OVERLAY ──────────────────────────────────── */
+    #result-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,4,18,0.88);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    #result-overlay.show { display: flex; animation: fadeIn 0.15s ease; }
+    .rb {
+      background: #000c28; border: 3px solid; border-radius: 18px;
+      padding: 56px 78px; text-align: center; max-width: 680px; width: 92%;
+      animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn { from { transform: scale(0.82); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .r-icon { font-size: 4.8rem; margin-bottom: 16px; display: block; }
+    .r-head { font-size: 2rem; font-weight: 900; letter-spacing: 4px; margin-bottom: 8px; }
+    .r-head.ok { color: #66CC66; }
+    .r-head.bad { color: #FF4444; }
+    .r-flavor { font-family: 'Share Tech Mono', monospace; font-size: 1.08rem; color: rgba(255,204,153,0.55); margin-bottom: 14px; font-style: italic; }
+    .r-pts { font-family: 'Share Tech Mono', monospace; font-size: 1.58rem; margin-bottom: 6px; }
+    .r-pts.gain { color: #66CC66; }
+    .r-pts.loss { color: #FF4444; }
+    .r-ans { font-family: 'Share Tech Mono', monospace; font-size: 1.17rem; color: #66CC66; margin-top: 10px; margin-bottom: 18px; }
+    .r-board-note { font-family: 'Share Tech Mono', monospace; font-size: 0.98rem; color: rgba(255,195,0,0.7); letter-spacing: 1px; margin-bottom: 16px; }
+    .cont-btn {
+      background: transparent; border: 2px solid var(--lcars-orange); color: var(--lcars-orange);
+      font-family: 'Orbitron', sans-serif; font-size: 1.08rem; letter-spacing: 3px;
+      padding: 15px 42px; border-radius: 7px; cursor: pointer; transition: all 0.2s;
+    }
+    .cont-btn:hover { background: var(--lcars-orange); color: #000; }
+
+    /* ── GAME OVER ────────────────────────────────────────── */
+    #gameover-screen .content { align-items: center; text-align: center; }
+    .go-lbl { font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; letter-spacing: 4px; color: #7799FF; }
+    .go-winner-lbl { font-size: 0.75rem; letter-spacing: 6px; color: rgba(255,204,153,0.45); }
+    .go-winner { font-size: 2.2rem; font-weight: 900; color: var(--lcars-orange); letter-spacing: 4px; text-shadow: 0 0 22px rgba(255,153,0,0.55); margin: 4px 0 16px; }
+    .final-list { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 8px; }
+    .fs-row { display: flex; align-items: center; gap: 14px; background: rgba(0,8,28,0.85); border: 2px solid rgba(255,153,0,0.14); border-radius: 9px; padding: 12px 18px; }
+    .fs-row.win { border-color: var(--lcars-orange); box-shadow: 0 0 14px rgba(255,153,0,0.25); }
+    .fs-rank { font-size: 1.3rem; width: 30px; text-align: center; }
+    .fs-name { flex: 1; font-weight: 700; letter-spacing: 2px; font-size: 0.78rem; text-align: left; }
+    .fs-pts { font-family: 'Share Tech Mono', monospace; font-size: 1.1rem; color: var(--gold); min-width: 100px; text-align: right; }
+    .fs-pts.neg { color: #FF5555; }
+    .new-btn { background: var(--lcars-orange); color: #000; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 0.9rem; letter-spacing: 4px; padding: 13px 50px; border: none; border-radius: 50px; cursor: pointer; margin-top: 16px; transition: all 0.25s; box-shadow: 0 0 18px rgba(255,153,0,0.28); }
+    .new-btn:hover { box-shadow: 0 0 38px rgba(255,153,0,0.55); transform: scale(1.04); }
+
+    .divider { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 680px; }
+    .divider .db { height: 6px; border-radius: 3px; }
+    .divider .dl { flex: 1; height: 2px; background: rgba(255,153,0,0.18); }
+
+    /* ── SOURCE LINK ─────────────────────────────────────── */
+    #q-source { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; text-align: right; padding: 4px 2px 0; }
+    #q-source a { color: #7799FF; text-decoration: none; letter-spacing: 1px; opacity: 0.65; transition: opacity 0.2s, color 0.2s; }
+    #q-source a:hover { opacity: 1; color: var(--lcars-orange); }
+    .r-source { font-family: 'Share Tech Mono', monospace; font-size: 0.58rem; margin: 2px 0 10px; }
+    .r-source a { color: #7799FF; text-decoration: none; opacity: 0.65; }
+    .r-source a:hover { opacity: 1; color: var(--lcars-orange); }
+
+    /* ── VETERAN HANDICAP ────────────────────────────────── */
+    .pcard-hcap { display: flex; align-items: center; gap: 10px; margin-top: 5px; padding-top: 8px; border-top: 1px solid rgba(119,153,255,0.15); }
+    .pcard-hcap input[type=checkbox] { width: 20px; height: 20px; cursor: pointer; accent-color: #7799FF; flex-shrink: 0; }
+    .pcard-hcap span { font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; letter-spacing: 2px; color: #7799FF; line-height: 1.3; }
+    .pc-vet { font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; color: #7799FF; letter-spacing: 1px; margin-top: 2px; }
+
+    /* ── LIFELINE BAR ────────────────────────────────────── */
+    #lifeline-bar {
+      display: flex; gap: 8px; justify-content: center; align-items: center;
+      padding: 8px 20px; flex-wrap: nowrap;
+      /* background & border-bottom set dynamically in showQuestion() */
+    }
+    #lifeline-bar .ll-lbl {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.48rem;
+      letter-spacing: 3px; opacity: 0.6; margin-right: 4px; white-space: nowrap;
+    }
+    .ll-btn {
+      flex: 1; max-width: 160px;
+      background: rgba(0,0,0,0.28); border: 1.5px solid rgba(255,255,255,0.28);
+      color: #fff; font-family: 'Orbitron', sans-serif; font-size: 0.55rem;
+      letter-spacing: 2px; padding: 6px 10px; border-radius: 5px; cursor: pointer;
+      transition: all 0.18s; display: flex; align-items: center; justify-content: center; gap: 5px;
+      white-space: nowrap;
+    }
+    .ll-btn:hover:not(:disabled) { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.75); }
+    .ll-btn:disabled { opacity: 0.18; cursor: not-allowed; }
+    .pc-lifelines { font-size: 0.85rem; letter-spacing: 2px; margin-top: 2px; }
+
+    /* ── PHONE OVERLAY ───────────────────────────────────── */
+    #phone-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,4,18,0.88);
+      z-index: 500; align-items: center; justify-content: center;
+    }
+    #phone-overlay.show { display: flex; animation: fadeIn 0.15s ease; }
+    .phone-card {
+      background: #000c28; border: 3px solid #66CC66; border-radius: 18px;
+      padding: 48px 62px; text-align: center; max-width: 616px; min-width: 448px;
+      animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .phone-hdr { font-size: 0.91rem; letter-spacing: 4px; color: #66CC66; margin-bottom: 18px; }
+    .phone-avatar { font-size: 3.92rem; margin-bottom: 14px; }
+    .phone-thinking { font-family: 'Share Tech Mono', monospace; font-size: 0.98rem; color: rgba(255,204,153,0.5); font-style: italic; margin-bottom: 16px; min-height: 1.2em; }
+    .phone-answer { font-family: 'Share Tech Mono', monospace; font-size: 1.19rem; color: #fff; line-height: 1.5; margin-bottom: 24px; min-height: 2em; }
+    .phone-dismiss { background: transparent; border: 2px solid #66CC66; color: #66CC66; font-family: 'Orbitron', sans-serif; font-size: 0.91rem; letter-spacing: 3px; padding: 13px 34px; border-radius: 7px; cursor: pointer; transition: all 0.2s; }
+    .phone-dismiss:hover { background: #66CC66; color: #000; }
+
+    /* ── AUDIENCE OVERLAY ────────────────────────────────── */
+    #audience-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,4,18,0.88);
+      z-index: 500; align-items: center; justify-content: center;
+    }
+    #audience-overlay.show { display: flex; animation: fadeIn 0.15s ease; }
+    .aud-card {
+      background: #000c28; border: 3px solid #7799FF; border-radius: 18px;
+      padding: 48px 62px; text-align: center; max-width: 700px; min-width: 476px;
+      animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .aud-hdr { font-size: 0.91rem; letter-spacing: 4px; color: #7799FF; margin-bottom: 24px; }
+    .aud-bars { display: flex; flex-direction: column; gap: 14px; margin-bottom: 26px; }
+    .aud-row { display: flex; align-items: center; gap: 14px; }
+    .aud-ltr { font-family: 'Orbitron', sans-serif; font-size: 0.98rem; color: var(--gold); width: 24px; flex-shrink: 0; }
+    .aud-bar-wrap { flex: 1; background: rgba(255,255,255,0.06); border-radius: 5px; height: 30px; overflow: hidden; }
+    .aud-bar-fill { height: 100%; background: #7799FF; border-radius: 5px; width: 0; transition: width 1.2s cubic-bezier(0.25,1,0.5,1); }
+    .aud-pct { font-family: 'Share Tech Mono', monospace; font-size: 0.98rem; color: #fff; width: 50px; text-align: right; flex-shrink: 0; }
+    .aud-ans { font-family: 'Share Tech Mono', monospace; font-size: 0.84rem; color: rgba(255,204,153,0.55); text-align: left; flex: 1; padding-left: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .aud-dismiss { background: transparent; border: 2px solid #7799FF; color: #7799FF; font-family: 'Orbitron', sans-serif; font-size: 0.91rem; letter-spacing: 3px; padding: 13px 34px; border-radius: 7px; cursor: pointer; transition: all 0.2s; }
+    .aud-dismiss:hover { background: #7799FF; color: #000; }
+
+    /* ── FIREWORKS CANVAS ────────────────────────────────── */
+    #fireworks-canvas { display: none; position: fixed; inset: 0; z-index: 9999; pointer-events: none; }
+
+    /* ── WINNER OVERLAY ──────────────────────────────────── */
+    #winner-overlay {
+      display: none; position: fixed; inset: 0; z-index: 10000;
+      align-items: center; justify-content: center;
+      background: rgba(0,6,18,0.72);
+    }
+    #winner-overlay.show { display: flex; }
+    #winner-card {
+      text-align: center; padding: 48px 60px 40px;
+      background: rgba(0,10,30,0.88);
+      border: 3px solid var(--lcars-orange);
+      border-radius: 18px;
+      box-shadow: 0 0 60px rgba(255,153,0,0.35), 0 0 120px rgba(255,153,0,0.15);
+      animation: popIn 0.45s cubic-bezier(0.34,1.56,0.64,1);
+      max-width: 540px; width: 90%;
+    }
+    #winner-trophy { font-size: 5rem; margin-bottom: 8px; animation: trophyPulse 1.6s ease-in-out infinite; }
+    @keyframes trophyPulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.12);} }
+    #winner-lbl { font-size: 0.65rem; letter-spacing: 8px; color: rgba(255,204,153,0.5); margin-bottom: 6px; }
+    #winner-name-big {
+      font-size: 3.4rem; font-weight: 900; color: var(--lcars-orange);
+      letter-spacing: 5px; text-shadow: 0 0 30px rgba(255,153,0,0.7);
+      margin-bottom: 6px; line-height: 1.1;
+    }
+    #winner-score-big {
+      font-family: 'Share Tech Mono', monospace; font-size: 1.8rem;
+      color: var(--gold); margin-bottom: 20px;
+    }
+    .w-scores { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-bottom: 28px; }
+    .w-score-row { display: flex; align-items: center; gap: 12px; background: rgba(255,153,0,0.05); border: 1px solid rgba(255,153,0,0.12); border-radius: 7px; padding: 8px 14px; }
+    .w-score-row.w-win { border-color: rgba(255,153,0,0.4); background: rgba(255,153,0,0.1); }
+    .w-rank { font-size: 1.1rem; width: 26px; text-align: center; }
+    .w-name { flex: 1; font-weight: 700; font-size: 0.72rem; letter-spacing: 2px; text-align: left; }
+    .w-pts  { font-family: 'Share Tech Mono', monospace; font-size: 0.95rem; color: var(--gold); }
+    .w-pts.neg { color: #FF5555; }
+    #winner-newgame {
+      background: var(--lcars-orange); color: #000;
+      font-family: 'Orbitron', sans-serif; font-weight: 900;
+      font-size: 1rem; letter-spacing: 5px; padding: 15px 60px;
+      border: none; border-radius: 50px; cursor: pointer;
+      box-shadow: 0 0 28px rgba(255,153,0,0.5); transition: all 0.22s;
+    }
+    #winner-newgame:hover { box-shadow: 0 0 55px rgba(255,153,0,0.8); transform: scale(1.05); }
+    /* ── LEADERBOARD OVERLAY ─────────────────────────────── */
+    #lb-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,4,18,0.92);
+      z-index: 600; align-items: center; justify-content: center;
+    }
+    #lb-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
+    .lb-card {
+      background: #000c28; border: 3px solid var(--lcars-orange); border-radius: 14px;
+      padding: 36px 48px; max-width: 660px; width: 94%; max-height: 80vh;
+      overflow-y: auto; animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .lb-hdr { font-size: 1.1rem; font-weight: 900; letter-spacing: 6px; color: var(--lcars-orange); margin-bottom: 4px; text-align: center; }
+    .lb-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.58rem; color: rgba(255,204,153,0.4); letter-spacing: 3px; text-align: center; margin-bottom: 22px; }
+    .lb-table { width: 100%; border-collapse: collapse; }
+    .lb-th { font-family: 'Share Tech Mono', monospace; font-size: 0.52rem; letter-spacing: 2px; color: #7799FF; padding: 6px 10px; text-align: left; border-bottom: 1px solid rgba(119,153,255,0.2); }
+    .lb-th.num { text-align: right; }
+    .lb-row { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
+    .lb-row:hover { background: rgba(255,153,0,0.04); }
+    .lb-row.lb-top { background: rgba(255,153,0,0.08); }
+    .lb-td { font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; color: #fff; padding: 10px 10px; }
+    .lb-td.num { text-align: right; color: var(--gold); }
+    .lb-td.rank { text-align: center; font-size: 1rem; width: 36px; }
+    .lb-empty { text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: rgba(255,204,153,0.3); padding: 32px; letter-spacing: 2px; }
+    .lb-footer { display: flex; gap: 12px; justify-content: space-between; align-items: center; margin-top: 24px; flex-wrap: wrap; }
+    .lb-close-btn { background: transparent; border: 2px solid var(--lcars-orange); color: var(--lcars-orange); font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 3px; padding: 9px 24px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+    .lb-close-btn:hover { background: var(--lcars-orange); color: #000; }
+    .lb-reset-btn { background: transparent; border: 2px solid #FF4444; color: #FF4444; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 3px; padding: 9px 24px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+    .lb-reset-btn:hover { background: rgba(255,68,68,0.15); }
+
+    /* ── LEADERBOARD BUTTON (setup) ──────────────────────── */
+    .lb-open-btn { background: transparent; border: 2px solid rgba(255,153,0,0.4); color: var(--lcars-orange); font-family: 'Orbitron', sans-serif; font-size: 1.1rem; letter-spacing: 3px; padding: 16px 40px; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+    .lb-open-btn:hover { border-color: var(--lcars-orange); background: rgba(255,153,0,0.08); }
+
+    /* ── PASSWORD MODAL ──────────────────────────────────── */
+    #pw-modal { display: none; position: fixed; inset: 0; background: rgba(0,4,18,0.88); z-index: 700; align-items: center; justify-content: center; }
+    #pw-modal.show { display: flex; animation: fadeIn 0.15s ease; }
+    .pw-card { background: #000c28; border: 3px solid #FF4444; border-radius: 14px; padding: 36px 44px; text-align: center; max-width: 380px; width: 90%; animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+    .pw-hdr { font-size: 0.7rem; letter-spacing: 5px; color: #FF4444; margin-bottom: 18px; }
+    .pw-input { background: rgba(0,8,20,0.8); border: 1px solid rgba(255,68,68,0.4); border-radius: 4px; color: #fff; font-family: 'Share Tech Mono', monospace; font-size: 1rem; padding: 10px 14px; outline: none; width: 100%; margin-bottom: 8px; text-align: center; letter-spacing: 3px; }
+    .pw-input:focus { border-color: #FF4444; }
+    .pw-err { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: #FF4444; margin-bottom: 14px; min-height: 1.2em; }
+    .pw-btns { display: flex; gap: 10px; justify-content: center; }
+    .pw-confirm { background: #FF4444; color: #fff; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 3px; padding: 9px 24px; border: none; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+    .pw-confirm:hover { background: #CC2222; }
+    .pw-cancel { background: transparent; border: 2px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 3px; padding: 9px 24px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+    .pw-cancel:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+
+    /* ── VAULT SIGNED-IN BADGE ───────────────────────────── */
+    .pcard-vault-badge {
+      font-size: 0.5rem; letter-spacing: 2px; color: #66CC66;
+      background: rgba(102,204,102,0.1); border: 1px solid rgba(102,204,102,0.3);
+      border-radius: 3px; padding: 1px 6px; vertical-align: middle; margin-left: 6px;
+    }
+
+    /* ── AUTH MODAL ──────────────────────────────────────── */
+    #auth-modal { display: none; position: fixed; inset: 0; background: rgba(0,4,18,0.88); z-index: 800; align-items: center; justify-content: center; }
+    #auth-modal.show { display: flex; animation: fadeIn 0.15s ease; }
+    .auth-card { background: #000c28; border: 3px solid #7799FF; border-radius: 14px; padding: 36px 44px; text-align: center; max-width: 380px; width: 90%; animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+    .auth-mode-lbl { font-size: 0.6rem; letter-spacing: 5px; color: #7799FF; margin-bottom: 4px; }
+    .auth-player-lbl { font-size: 1.3rem; font-weight: 900; letter-spacing: 3px; color: var(--lcars-orange); margin-bottom: 18px; }
+    .auth-field-lbl { font-family: 'Share Tech Mono', monospace; font-size: 0.52rem; letter-spacing: 2px; color: rgba(255,204,153,0.5); text-align: left; margin-bottom: 4px; margin-top: 12px; }
+    .auth-input { background: rgba(0,8,20,0.8); border: 1px solid rgba(119,153,255,0.4); border-radius: 4px; color: #fff; font-family: 'Share Tech Mono', monospace; font-size: 1rem; padding: 10px 14px; outline: none; width: 100%; text-align: center; letter-spacing: 2px; transition: border-color 0.2s; }
+    .auth-input:focus { border-color: #7799FF; }
+    .auth-err { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: #FF4444; margin-top: 8px; margin-bottom: 4px; min-height: 1.2em; }
+    .auth-btns { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
+    .auth-confirm { background: #7799FF; color: #000; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 3px; padding: 9px 24px; border: none; border-radius: 5px; cursor: pointer; transition: all 0.2s; font-weight: 700; }
+    .auth-confirm:hover { background: #99BBFF; }
+    .auth-cancel { background: transparent; border: 2px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 3px; padding: 9px 24px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+    .auth-cancel:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+    .auth-new-hint { font-family: 'Share Tech Mono', monospace; font-size: 0.55rem; color: rgba(255,204,153,0.35); margin-top: 10px; letter-spacing: 1px; }
+
+    /* ── ADMIN OVERLAY ───────────────────────────────────── */
+    #admin-login-modal { display: none; position: fixed; inset: 0; background: rgba(0,4,18,0.88); z-index: 800; align-items: center; justify-content: center; }
+    #admin-login-modal.show { display: flex; animation: fadeIn 0.15s ease; }
+    #admin-overlay { display: none; position: fixed; inset: 0; background: rgba(0,4,18,0.92); z-index: 800; align-items: center; justify-content: center; }
+    #admin-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
+    .admin-card { background: #000c28; border: 3px solid #FF9900; border-radius: 14px; padding: 36px 48px; max-width: 700px; width: 95%; max-height: 82vh; overflow-y: auto; animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+    .admin-hdr { font-size: 1rem; font-weight: 900; letter-spacing: 6px; color: var(--lcars-orange); margin-bottom: 4px; text-align: center; }
+    .admin-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.55rem; color: rgba(255,204,153,0.4); letter-spacing: 3px; text-align: center; margin-bottom: 22px; }
+    .admin-section-lbl { font-family: 'Share Tech Mono', monospace; font-size: 0.55rem; letter-spacing: 3px; color: #7799FF; margin: 18px 0 8px; border-bottom: 1px solid rgba(119,153,255,0.2); padding-bottom: 6px; }
+    .admin-table { width: 100%; border-collapse: collapse; }
+    .admin-th { font-family: 'Share Tech Mono', monospace; font-size: 0.5rem; letter-spacing: 2px; color: #7799FF; padding: 6px 10px; text-align: left; border-bottom: 1px solid rgba(119,153,255,0.2); }
+    .admin-row { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .admin-row:hover { background: rgba(255,153,0,0.04); }
+    .admin-td { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; color: #fff; padding: 9px 10px; }
+    .admin-td.muted { color: rgba(255,204,153,0.4); font-size: 0.58rem; }
+    .admin-actions { display: flex; gap: 6px; }
+    .admin-btn-reset { background: transparent; border: 1.5px solid #FFC300; color: #FFC300; font-family: 'Orbitron', sans-serif; font-size: 0.5rem; letter-spacing: 2px; padding: 5px 10px; border-radius: 4px; cursor: pointer; transition: all 0.18s; white-space: nowrap; }
+    .admin-btn-reset:hover { background: rgba(255,195,0,0.15); }
+    .admin-btn-del { background: transparent; border: 1.5px solid #FF4444; color: #FF4444; font-family: 'Orbitron', sans-serif; font-size: 0.5rem; letter-spacing: 2px; padding: 5px 10px; border-radius: 4px; cursor: pointer; transition: all 0.18s; white-space: nowrap; }
+    .admin-btn-del:hover { background: rgba(255,68,68,0.15); }
+    .admin-empty { text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: rgba(255,204,153,0.3); padding: 24px; letter-spacing: 2px; }
+    .admin-footer { display: flex; justify-content: flex-end; margin-top: 22px; }
+    .admin-close-btn { background: transparent; border: 2px solid var(--lcars-orange); color: var(--lcars-orange); font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 3px; padding: 9px 24px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+    .admin-close-btn:hover { background: var(--lcars-orange); color: #000; }
+    .admin-pw-change { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .admin-pw-input { background: rgba(0,8,20,0.8); border: 1px solid rgba(255,153,0,0.3); border-radius: 4px; color: #fff; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; padding: 7px 12px; outline: none; flex: 1; min-width: 140px; letter-spacing: 2px; }
+    .admin-pw-input:focus { border-color: var(--lcars-orange); }
+    .admin-pw-save { background: var(--lcars-orange); color: #000; font-family: 'Orbitron', sans-serif; font-size: 0.55rem; letter-spacing: 2px; padding: 8px 18px; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; transition: all 0.18s; }
+    .admin-pw-save:hover { box-shadow: 0 0 14px rgba(255,153,0,0.5); }
+    .admin-msg { font-family: 'Share Tech Mono', monospace; font-size: 0.58rem; color: #66CC66; margin-top: 6px; min-height: 1.2em; }
+    .admin-open-btn { background: transparent; border: 2px solid rgba(255,153,0,0.3); color: rgba(255,153,0,0.6); font-family: 'Orbitron', sans-serif; font-size: 1.1rem; letter-spacing: 3px; padding: 16px 40px; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+    .admin-open-btn:hover { border-color: var(--lcars-orange); color: var(--lcars-orange); background: rgba(255,153,0,0.05); }
+  </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<canvas id="fireworks-canvas"></canvas>
+
+<!-- ══ WINNER OVERLAY ════════════════════════════════════════ -->
+<div id="winner-overlay">
+  <div id="winner-card">
+    <div id="winner-trophy">🏆</div>
+    <div id="winner-lbl">WINNER</div>
+    <div id="winner-name-big">—</div>
+    <div id="winner-score-big">$0</div>
+    <div class="w-scores" id="w-scores"></div>
+    <button id="winner-newgame" onclick="newGameFromWinner()">⚡ NEW GAME</button>
+  </div>
+</div>
+
+<!-- ══ PHONE A FRIEND OVERLAY ═════════════════════════════════ -->
+<div id="phone-overlay">
+  <div class="phone-card">
+    <div class="phone-hdr">📞 COMPUTER ADVISORY SYSTEM — LCARS-7</div>
+    <div class="phone-avatar" id="phone-avatar">🖖</div>
+    <div class="phone-thinking" id="phone-thinking">Establishing subspace connection...</div>
+    <div class="phone-answer" id="phone-answer"></div>
+    <button class="phone-dismiss" onclick="dismissPhone()">UNDERSTOOD</button>
+  </div>
+</div>
+
+<!-- ══ ASK THE AUDIENCE OVERLAY ══════════════════════════════= -->
+<div id="audience-overlay">
+  <div class="aud-card">
+    <div class="aud-hdr">👥 AUDIENCE POLL — LIVE RESULTS</div>
+    <div class="aud-bars" id="aud-bars"></div>
+    <button class="aud-dismiss" onclick="dismissAudience()">THANK THE AUDIENCE</button>
+  </div>
+</div>
+<!-- ══ SETUP ══════════════════════════════════════════════════ -->
+<div id="setup-screen" class="screen active">
+  <div class="lcars-bar">
+    <div class="bl"></div><div class="bg"></div>
+    <div class="bi"><a href="../index.html" style="color:#7799FF;font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:2px;text-decoration:none;margin-right:16px;opacity:0.55;transition:opacity 0.2s" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.55'">← HOME</a><span>COMPUTER ACCESS ENABLED — STARDATE 47634.44</span></div>
+    <div class="br">TREK TRIVIA</div>
+  </div>
+  <div class="content">
+    <div class="hero">
+      <div class="hero-title">TREK TRIVIA</div>
+      <div class="hero-sub">THE NEXT GENERATION</div>
+      <div class="hero-tag">JEOPARDY-STYLE — 6 CATEGORIES — 30 QUESTIONS — 5 POINT TIERS</div>
+    </div>
+    <div class="divider">
+      <div class="db" style="width:40px;background:#FF9900;"></div>
+      <div class="db" style="width:12px;background:#7799FF;"></div>
+      <div class="dl"></div>
+      <div class="db" style="width:12px;background:#FFC300;"></div>
+      <div class="db" style="width:40px;background:#FF9900;"></div>
+    </div>
+    <div class="setup-lbl">NUMBER OF PLAYERS</div>
+    <div class="count-row">
+      <button class="count-btn active" data-n="2" onclick="setCount(2)">2</button>
+      <button class="count-btn" data-n="3" onclick="setCount(3)">3</button>
+      <button class="count-btn" data-n="4" onclick="setCount(4)">4</button>
+    </div>
+    <div class="setup-lbl">CREW MANIFEST</div>
+    <div class="pgrid" id="pgrid"></div>
+    <div class="setup-lbl">GAME OPTIONS</div>
+    <div class="options-row">
+      <label class="opt-toggle">
+        <input type="checkbox" id="opt-timer" checked>
+        <span>⏱ 60-SECOND TIMER PER QUESTION</span>
+      </label>
+    </div>
+    <button class="engage-btn" onclick="startGame()">⚡ ENGAGE</button>
+    <div class="rules-note">
+      PLAYERS TAKE TURNS SELECTING ANY OPEN CELL ON THE BOARD<br>
+      HIGHER TIERS = HARDER QUESTIONS = MORE POINTS<br>
+      CORRECT: EARN THE POINTS &nbsp;|&nbsp; WRONG: LOSE THE POINTS<br>
+      ★ ONE DAILY DOUBLE HIDDEN ON THE BOARD — WAGER YOUR OWN AMOUNT<br>
+      GAME ENDS WHEN THE BOARD IS CLEARED — HIGHEST SCORE WINS
+    </div>
+  </div>
+</div>
+
+<!-- ══ GAME SCREEN ════════════════════════════════════════════ -->
+<div id="game-screen" class="screen">
+  <div class="lcars-bar">
+    <div class="bl"></div><div class="bg"></div>
+    <div class="bi"><span id="game-lbl">SELECT A CLUE</span></div>
+    <div class="br" id="cells-left-label">30 CLUES LEFT</div>
+  </div>
+  <div class="content">
+    <div id="player-hud"></div>
+    <div id="turn-bar">
+      <div>
+        <div class="tb-left">SELECTING</div>
+        <div class="tb-name" id="turn-name">—</div>
+      </div>
+      <div class="tb-right" id="turn-hint">PICK ANY OPEN CELL</div>
+    </div>
+    <div id="board-wrap">
+      <div id="jeopardy-board"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GAME OVER ═══════════════════════════════════════════════ -->
+<div id="gameover-screen" class="screen">
+  <div class="lcars-bar">
+    <div class="bl"></div><div class="bg"></div>
+    <div class="bi"><span>BOARD CLEARED — FINAL ASSESSMENT</span></div>
+    <div class="br">DEBRIEFING</div>
+  </div>
+  <div class="content">
+    <div class="go-lbl">BOARD CLEARED — GAME OVER</div>
+    <div style="font-size:2.8rem;margin:4px 0;">🏆</div>
+    <div class="go-winner-lbl">WINNER</div>
+    <div class="go-winner" id="go-winner">—</div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:rgba(255,204,153,0.38);letter-spacing:3px;margin-bottom:6px;">FINAL SCORES</div>
+    <div class="final-list" id="final-list"></div>
+    <button class="new-btn" onclick="resetGame()">NEW GAME</button>
+  </div>
+</div>
+
+<!-- ══ QUESTION OVERLAY ═══════════════════════════════════════ -->
+<div id="q-overlay">
+  <!-- Daily Double wager screen -->
+  <div id="dd-screen">
+    <div class="dd-title">★ DAILY DOUBLE ★</div>
+    <div class="dd-sub" id="dd-player-name">PICARD — MAKE YOUR WAGER</div>
+    <div class="dd-range" id="dd-range">WAGER $5 TO $1000</div>
+    <div class="wager-row">
+      <button class="wager-adj" onclick="adjustWager(-100)">−</button>
+      <div id="wager-display">$200</div>
+      <button class="wager-adj" onclick="adjustWager(100)">+</button>
+    </div>
+    <div class="wager-presets" id="wager-presets"></div>
+    <button class="wager-go-btn" onclick="lockWager()">LOCK IN WAGER</button>
+  </div>
+
+  <!-- Question content -->
+  <div class="q-wrap" id="q-content" style="display:none;">
+    <div class="q-top-bar" id="q-top-bar">
+      <div class="qtb-cat">
+        <span id="q-icon"></span>
+        <span id="q-cat-name"></span>
+      </div>
+      <div class="qtb-player">
+        <span class="qtb-player-lbl">NOW ANSWERING</span>
+        <span class="qtb-player-name" id="q-player-name">—</span>
+      </div>
+      <div class="qtb-val" id="q-val-label"></div>
+    </div>
+    <div id="lifeline-bar">
+      <span class="ll-lbl">LIFELINES</span>
+      <button class="ll-btn" id="ll-5050"     onclick="useLifeline('5050')">⚡ 50 : 50</button>
+      <button class="ll-btn" id="ll-phone"    onclick="useLifeline('phone')">📞 PHONE</button>
+      <button class="ll-btn" id="ll-audience" onclick="useLifeline('audience')">👥 AUDIENCE</button>
+    </div>
+    <div id="q-timer-wrap">
+      <div id="q-timer-bar-bg"><div id="q-timer-bar"></div></div>
+      <div id="q-timer-lbl">90</div>
+    </div>
+    <div id="q-text"></div>
+    <div id="q-answers"></div>
+    <div id="q-source"></div>
+  </div>
+</div>
+
+<!-- ══ RESULT OVERLAY ══════════════════════════════════════════ -->
+<div id="result-overlay">
+  <div class="rb" id="rb">
+    <span class="r-icon" id="r-icon"></span>
+    <div class="r-head" id="r-head"></div>
+    <div class="r-flavor" id="r-flavor"></div>
+    <div class="r-pts" id="r-pts"></div>
+    <div class="r-ans" id="r-ans"></div>
+    <div class="r-source" id="r-source"></div>
+    <div class="r-board-note" id="r-board-note"></div>
+    <button class="cont-btn" onclick="continueAfterResult()">CONTINUE →</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// TRIVIA DATA  — arrays per tier; one is picked randomly each game
+// ════════════════════════════════════════════════════════════
+const VALUES = [200, 400, 600, 800, 1000];
+
+const Q_BY_TIER = {
+  200:  [],
+  400:  [
+        { q: 'Why did Riker accept the assignment of serving aboard a Klingon vessel in "A Matter of Honor"?', a: ['Worf challenged him to accept', 'No Starfleet officer had ever done it', 'Starfleet ordered it', 'To investigate a security breach'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/A_Matter_Of_Honor_%28episode%29' },
+        { q: 'In "The Measure of a Man," what did Data do in order to keep from being assigned to Commander Maddox, and being taken apart?', a: ['He resigned from Starfleet', 'He stole a shuttlecraft and went to Drema IV', 'He deactivated himself', 'He requested asylum on Starbase 173'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29' },
+        { q: 'In "Pen Pals," what was Captain Picard going to indulge in while on the Holodeck at the beginning of the episode?', a: ['A mystery', 'Horseback riding', 'Solving an archaeological puzzle', 'Fencing'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Equestrian_Adventure' },
+        { q: 'Who performed the wedding ceremony for Keiko and Miles O\'Brien?', a: ['Jean-Luc Picard', 'Will Riker', 'Data', 'Guinan'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29' },
+        { q: 'In "The Measure of a Man," which of the following did NOT participate in the poker game in the beginning of the episode?', a: ['Kate Pulaski', 'Deanna Troi', 'Miles O\'Brien', 'Worf'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29' },
+        { q: 'When Jean-Luc Picard was reassigned to a mission behind Cardassian lines, who replaced him as captain?', a: ['Edward Jellico', 'William Riker', 'Tryla Scott', 'Morgan Bateson'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Chain_Of_Command%2C_Part_I_%28episode%29' },
+        { q: 'Which of these was not a drink offered to Admiral Nechayev by Captain Picard?', a: ['Coffee', 'Synthehol', 'Tea', 'Aldebaran whiskey'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Journey%27s_End_%28episode%29' }
+      ],
+  600:  [
+        { q: 'Who accompanied Captain Picard onto the Holodeck in the episode "Pen Pals"?', a: ['Lt. Commander Data', 'Guinan', 'Counselor Troi', 'Lieutenant Worf'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Pen_Pals_%28episode%29' },
+        { q: 'As learned in "Loud as a Whisper," before Mediator Rivas, there was no word for what in the Klingon vocabulary?', a: ['Peacemaker', 'Friend', 'Negotiation', 'Diplomat'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29' },
+        { q: 'Which of the following groups comprised the Away Team to the planet Ramatis III in "Loud as a Whisper"?', a: ['Picard, Data, Pulaski', 'Riker, Worf, Data', 'Picard, Worf, Troi', 'Picard, Data, Worf'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29' },
+        { q: 'Which of these is a measuring unit for a starship\'s structural integrity field?', a: ['Kilobyte', 'Kilodyne', 'Kilogram', 'Kiloparsec'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Dyne' },
+        { q: 'In what division at the Daystrom Institute does Commander Bruce Maddox serve?', a: ['Cybernetics', 'Hydroponics', 'Audioanimatronics', 'Astrometrics'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Bruce_Maddox' },
+        { q: 'When Keiko married Miles O\'Brien, who was the "father" of the bride?', a: ['Will Riker', 'Jean-Luc Picard', 'Data', 'Worf'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29' },
+        { q: 'Who did Keiko ask to inform Miles O\'Brien that she wanted to cancel their wedding?', a: ['Guinan', 'Data', 'Deanna Troi', 'Dr. Crusher'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29' },
+        { q: 'Give the name of the old friend Picard ran into on Starbase 173, who also had prosecuted him in the Stargazer Court martial?', a: ['Admiral Gregory Quinn', 'Captain Tryla Scott', 'Captain Phillipa Louvois', 'Judge Advocate General Nora Satie'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Phillipa_Louvois' },
+        { q: 'In "Contagion," Captain Picard took the U.S.S. Enterprise into the Neutral Zone to answer an SOS from which ship?', a: ['U.S.S. Victory', 'U.S.S. Yamato', 'U.S.S. Rio Grande', 'U.S.S. Hathaway'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Contagion_%28episode%29' },
+        { q: 'Name the U.S.S. Enterprise sister ship, which exploded in the Neutral Zone, due to malfunctions, in "Contagion."', a: ['U.S.S. Galaxy', 'U.S.S. Endeavor', 'U.S.S. Yamato', 'U.S.S. Odyssey'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/USS_Yamato' },
+        { q: 'Which admiral reassigned Captain Picard to a secret mission in Cardassian territory?', a: ['Admiral Alynna Nechayev', 'Admiral J.P. Hanson', 'Admiral Norah Satie', 'Admiral Gregory Quinn'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Alynna_Nechayev' },
+        { q: 'Who is the captain of the U.S.S. Cairo?', a: ['Captain Robert DeSoto', 'Captain Walker Keel', 'Captain Edward Jellico', 'Captain Benjamin Maxwell'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Edward_Jellico' }
+      ],
+  800:  [
+        { q: 'What kind of vessel is the U.S.S. Lantree?', a: ['A Constellation class starship', 'A Class VI Federation supply ship', 'A Galaxy class starship', 'An Oberth class science vessel'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/USS_Lantree' },
+        { q: 'In "Unnatural Selection," who was Captain of the U.S.S. Lantree?', a: ['Captain Dathon', 'Captain Stephens', 'Captain Telaka', 'Captain Donald Varley'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/L._Isao_Telaka' },
+        { q: 'In "Pen Pals," what was the cause of the destruction of the fifth planet in the Selcundi Drema System?', a: ['An imploding nebula', 'Geological instability', 'A black hole', 'Solar flare activity'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Pen_Pals_%28episode%29' },
+        { q: 'Much of Riker\'s decision to accept command of the U.S.S. Aries would depend on what?', a: ['How complete the briefing of his mission is', 'What officers from the U.S.S. Enterprise he could take with him', 'If Picard would stay on the U.S.S. Enterprise or not', 'Whether the Aries had a cloaking device'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/The_Icarus_Factor_%28episode%29' },
+        { q: 'Who was the civilian advisor of the strategic attaches in "The Icarus Factor"?', a: ['Kyle Riker', 'Ian Troi', 'Devinoni Ral', 'Sergey Rozhenko'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Kyle_Riker' },
+        { q: 'In "Loud as a Whisper," who met the Away Team when it beamed down to the planet Ramatis III?', a: ['The Prime Minister', 'Mediator Rivas', 'No one met the Away Team', 'A delegation of Chorus interpreters'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29' },
+        { q: 'Captain Picard offered to take Commander Riker for a horseback ride in the Holodeck along what Earth river?', a: ['The Kabul River', 'The Yangtse Kiang River', 'The Rio Grande River', 'The Ganges River'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Kabul_River' },
+        { q: 'On what starship did Captain Picard attempt to make preliminary overtures for a truce to the Cardassians?', a: ['U.S.S. Enterprise', 'U.S.S. Stargazer', 'U.S.S. Rutledge', 'U.S.S. Phoenix'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/USS_Stargazer_%28NCC-2893%29' },
+        { q: 'In "The Royale," the U.S.S. Enterprise beamed aboard a piece of debris that had what acronym on it?', a: ['UNCLE', 'IML-1', 'NASA', 'NACA'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/National_Aeronautics_and_Space_Administration' },
+        { q: 'What starship brought Admiral Alynna Nechayev to the U.S.S. Enterprise?', a: ['U.S.S. Wellington', 'U.S.S. Cairo', 'U.S.S. Hood', 'U.S.S. Melbourne'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/USS_Cairo' }
+      ],
+  1000: [
+        { q: 'In "The Measure of a Man," Data discovered that Commander Maddox had not yet determined how the electron resistance across what was to be resolved?', a: ['Positronic matrices', 'Neural filaments', 'Positronic interference', 'Isolinear pathways'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29' }
+      ]
+};
+
+const CATS = [
+  { id: 'crew', name: 'Crew & Characters', color: '#FF9900', icon: '👤' },
+  { id: 'tech', name: 'Ships & Technology', color: '#6699FF', icon: '🚀' },
+  { id: 'episodes', name: 'Episodes', color: '#66CC66', icon: '📺' },
+  { id: 'aliens', name: 'Aliens & Species', color: '#FFCC00', icon: '👽' },
+  { id: 'quotes', name: 'Famous Quotes', color: '#FF6699', icon: '💬' },
+  { id: 'starfleet', name: 'Starfleet & Federation', color: '#CC66CC', icon: '⭐' }
+];
+
+const OK_LINES = [
+  "Excellent analysis, Ensign!",
+  "Outstanding. Starfleet would be proud.",
+  "Affirmative. Well done, Officer.",
+  "Logical. The computer agrees.",
+  "Remarkable. Your training has paid off.",
+  "Picard would be most pleased.",
+];
+const BAD_LINES = [
+  "Negative. Return to the Academy.",
+  "Incorrect. Even Wesley knew that one.",
+  "That is not in our database.",
+  "Fascinating... that you got it wrong.",
+  "I protest. That answer was dishonorable.",
+  "Perhaps a holodeck refresher is in order.",
+];
+
+// ════════════════════════════════════════════════════════════
+// GAME STATE
+// ════════════════════════════════════════════════════════════
+let G = {
+  players: [],
+  currentIdx: 0,
+  board: {},          // board[catId][value] = true if answered
+  cellsLeft: 30,
+  dailyDouble: null,  // { catId, value }
+  ddWager: 200,
+  currentCell: null,  // { catId, value, q, isDD }
+};
+let selectedCount = 2;
+
+// ════════════════════════════════════════════════════════════
+// QUESTION TIERS — from Trek_Q.json (difficulty → point value)
+// 200=diff1  400=diff2  600=diff3  800=diff4  1000=diff5
+// Note: no difficulty-1 questions in current set; 200-pt cells
+//       fall back to the built-in CATS questions.
+// ════════════════════════════════════════════════════════════
+const TIERS = {
+  200: [], // no difficulty-1 questions in current set
+  400: [
+    { q: `Why did Riker accept the assignment of serving aboard a Klingon vessel in "A Matter of Honor"?`, a: ["Worf challenged him to accept","No Starfleet officer had ever done it","Starfleet ordered it","To investigate a security breach"], c: 1, src: "https://memory-alpha.fandom.com/wiki/A_Matter_Of_Honor_%28episode%29" },
+    { q: `In "The Measure of a Man," what did Data do in order to keep from being assigned to Commander Maddox, and being taken apart?`, a: ["He resigned from Starfleet","He stole a shuttlecraft and went to Drema IV","He deactivated himself","He requested asylum on Starbase 173"], c: 0, src: "https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29" },
+    { q: `In "Pen Pals," what was Captain Picard going to indulge in while on the Holodeck at the beginning of the episode?`, a: ["A mystery","Horseback riding","Solving an archaeological puzzle","Fencing"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Equestrian_Adventure" },
+    { q: "Who performed the wedding ceremony for Keiko and Miles O'Brien?", a: ["Jean-Luc Picard","Will Riker","Data","Guinan"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29" },
+    { q: `In "The Measure of a Man," which of the following did NOT participate in the poker game in the beginning of the episode?`, a: ["Kate Pulaski","Deanna Troi","Miles O'Brien","Worf"], c: 1, src: "https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29" },
+    { q: "When Jean-Luc Picard was reassigned to a mission behind Cardassian lines, who replaced him as captain?", a: ["Edward Jellico","William Riker","Tryla Scott","Morgan Bateson"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Chain_Of_Command%2C_Part_I_%28episode%29" },
+    { q: "Which of these was not a drink offered to Admiral Nechayev by Captain Picard?", a: ["Coffee","Synthehol","Tea","Aldebaran whiskey"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Journey%27s_End_%28episode%29" },
+  ],
+  600: [
+    { q: `Who accompanied Captain Picard onto the Holodeck in the episode "Pen Pals"?`, a: ["Lt. Commander Data","Guinan","Counselor Troi","Lieutenant Worf"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Pen_Pals_%28episode%29" },
+    { q: `As learned in "Loud as a Whisper," before Mediator Rivas, there was no word for what in the Klingon vocabulary?`, a: ["Peacemaker","Friend","Negotiation","Diplomat"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29" },
+    { q: `Which of the following groups comprised the Away Team to the planet Ramatis III in "Loud as a Whisper"?`, a: ["Picard, Data, Pulaski","Riker, Worf, Data","Picard, Worf, Troi","Picard, Data, Worf"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29" },
+    { q: "Which of these is a measuring unit for a starship's structural integrity field?", a: ["Kilobyte","Kilodyne","Kilogram","Kiloparsec"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Dyne" },
+    { q: "In what division at the Daystrom Institute does Commander Bruce Maddox serve?", a: ["Cybernetics","Hydroponics","Audioanimatronics","Astrometrics"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Bruce_Maddox" },
+    { q: "When Keiko married Miles O'Brien, who was the \"father\" of the bride?", a: ["Will Riker","Jean-Luc Picard","Data","Worf"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29" },
+    { q: "Who did Keiko ask to inform Miles O'Brien that she wanted to cancel their wedding?", a: ["Guinan","Data","Deanna Troi","Dr. Crusher"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29" },
+    { q: "Give the name of the old friend Picard ran into on Starbase 173, who also had prosecuted him in the Stargazer Court martial?", a: ["Admiral Gregory Quinn","Captain Tryla Scott","Captain Phillipa Louvois","Judge Advocate General Nora Satie"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Phillipa_Louvois" },
+    { q: `In "Contagion," Captain Picard took the U.S.S. Enterprise into the Neutral Zone to answer an SOS from which ship?`, a: ["U.S.S. Victory","U.S.S. Yamato","U.S.S. Rio Grande","U.S.S. Hathaway"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Contagion_%28episode%29" },
+    { q: `Name the U.S.S. Enterprise sister ship, which exploded in the Neutral Zone, due to malfunctions, in "Contagion."`, a: ["U.S.S. Galaxy","U.S.S. Endeavor","U.S.S. Yamato","U.S.S. Odyssey"], c: 2, src: "https://memory-alpha.fandom.com/wiki/USS_Yamato" },
+    { q: "Which admiral reassigned Captain Picard to a secret mission in Cardassian territory?", a: ["Admiral Alynna Nechayev","Admiral J.P. Hanson","Admiral Norah Satie","Admiral Gregory Quinn"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Alynna_Nechayev" },
+    { q: "Who is the captain of the U.S.S. Cairo?", a: ["Captain Robert DeSoto","Captain Walker Keel","Captain Edward Jellico","Captain Benjamin Maxwell"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Edward_Jellico" },
+  ],
+  800: [
+    { q: "What kind of vessel is the U.S.S. Lantree?", a: ["A Constellation class starship","A Class VI Federation supply ship","A Galaxy class starship","An Oberth class science vessel"], c: 1, src: "https://memory-alpha.fandom.com/wiki/USS_Lantree" },
+    { q: `In "Unnatural Selection," who was Captain of the U.S.S. Lantree?`, a: ["Captain Dathon","Captain Stephens","Captain Telaka","Captain Donald Varley"], c: 2, src: "https://memory-alpha.fandom.com/wiki/L._Isao_Telaka" },
+    { q: `In "Pen Pals," what was the cause of the destruction of the fifth planet in the Selcundi Drema System?`, a: ["An imploding nebula","Geological instability","A black hole","Solar flare activity"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Pen_Pals_%28episode%29" },
+    { q: "Much of Riker's decision to accept command of the U.S.S. Aries would depend on what?", a: ["How complete the briefing of his mission is","What officers from the U.S.S. Enterprise he could take with him","If Picard would stay on the U.S.S. Enterprise or not","Whether the Aries had a cloaking device"], c: 0, src: "https://memory-alpha.fandom.com/wiki/The_Icarus_Factor_%28episode%29" },
+    { q: `Who was the civilian advisor of the strategic attaches in "The Icarus Factor"?`, a: ["Kyle Riker","Ian Troi","Devinoni Ral","Sergey Rozhenko"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Kyle_Riker" },
+    { q: `In "Loud as a Whisper," who met the Away Team when it beamed down to the planet Ramatis III?`, a: ["The Prime Minister","Mediator Rivas","No one met the Away Team","A delegation of Chorus interpreters"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29" },
+    { q: "Captain Picard offered to take Commander Riker for a horseback ride in the Holodeck along what Earth river?", a: ["The Kabul River","The Yangtse Kiang River","The Rio Grande River","The Ganges River"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Kabul_River" },
+    { q: "On what starship did Captain Picard attempt to make preliminary overtures for a truce to the Cardassians?", a: ["U.S.S. Enterprise","U.S.S. Stargazer","U.S.S. Rutledge","U.S.S. Phoenix"], c: 1, src: "https://memory-alpha.fandom.com/wiki/USS_Stargazer_%28NCC-2893%29" },
+    { q: `In "The Royale," the U.S.S. Enterprise beamed aboard a piece of debris that had what acronym on it?`, a: ["UNCLE","IML-1","NASA","NACA"], c: 2, src: "https://memory-alpha.fandom.com/wiki/National_Aeronautics_and_Space_Administration" },
+    { q: "What starship brought Admiral Alynna Nechayev to the U.S.S. Enterprise?", a: ["U.S.S. Wellington","U.S.S. Cairo","U.S.S. Hood","U.S.S. Melbourne"], c: 1, src: "https://memory-alpha.fandom.com/wiki/USS_Cairo" },
+  ],
+  1000: [
+    { q: `In "The Measure of a Man," Data discovered that Commander Maddox had not yet determined how the electron resistance across what was to be resolved?`, a: ["Positronic matrices","Neural filaments","Positronic interference","Isolinear pathways"], c: 1, src: "https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29" },
+  ],
+};
+
+// ════════════════════════════════════════════════════════════
+// STARS
+// ════════════════════════════════════════════════════════════
+(function() {
+  const cv = document.getElementById('stars'), ctx = cv.getContext('2d');
+  function resize() { cv.width = innerWidth; cv.height = innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  const stars = Array.from({length:200},()=>({
+    x:Math.random(), y:Math.random(), sz:Math.random()*1.7+0.3,
+    op:Math.random()*0.6+0.2, ph:Math.random()*Math.PI*2, sp:Math.random()*0.8+0.3
+  }));
+  function draw() {
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const t = Date.now()*0.001;
+    for(const s of stars){
+      ctx.beginPath();
+      ctx.arc(s.x*cv.width, s.y*cv.height, s.sz, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${s.op*(0.65+0.35*Math.sin(t*s.sp+s.ph))})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ════════════════════════════════════════════════════════════
+// SETUP
+// ════════════════════════════════════════════════════════════
+const DEF = ['PICARD','RIKER','DATA','TROI'];
+const DEF_FULL = ['CAPTAIN PICARD','COMMANDER RIKER','LT. CMDR. DATA','COUNSELOR TROI'];
+
+function getVaultUser() { return localStorage.getItem('trivia_vault_user') || null; }
+
+function setCount(n) {
+  selectedCount = n;
+  document.querySelectorAll('.count-btn').forEach(b => b.classList.toggle('active', +b.dataset.n === n));
+  buildPlayerInputs();
+}
+
+function buildPlayerInputs() {
+  const vaultUser = getVaultUser();
+  document.getElementById('pgrid').innerHTML = Array.from({length: selectedCount}, (_, i) => {
+    const isMe = i === 0 && vaultUser;
+    return `<div class="pcard" id="pcard-${i}">
+      <label>PLAYER ${i+1}${isMe ? '<span class="pcard-vault-badge">✓ SIGNED IN</span>' : ''}</label>
+      <input type="text" id="pn-${i}" placeholder="${DEF_FULL[i]}" maxlength="20"${isMe ? ` value="${vaultUser}"` : ''}>
+    </div>`;
+  }).join('');
+}
+
+function startGame() {
+  const names = Array.from({length: selectedCount}, (_, i) =>
+    (document.getElementById(`pn-${i}`)?.value.trim().toUpperCase()) || DEF[i]);
+
+  G = {
+    players: names.map((n, i) => ({
+      name: n, score: 0,
+      veteran: document.getElementById(`ph-${i}`)?.checked || false,
+      lifelines: { fiftyFifty: true, phone: true, audience: true },
+    })),
+    currentIdx: 0,
+    board: {},
+    cellsLeft: 30,
+    dailyDouble: null,
+    ddWager: 200,
+    currentCell: null,
+    usedQTexts: new Set(),
+    timerEnabled: document.getElementById('opt-timer')?.checked ?? true,
+  };
+
+  // Init board state
+  CATS.forEach(cat => {
+    G.board[cat.id] = {};
+    VALUES.forEach(v => G.board[cat.id][v] = false);
+  });
+
+  // Pick one random Daily Double cell
+  const ddCat = CATS[Math.floor(Math.random() * CATS.length)];
+  // Bias toward higher values (400-1000) for Daily Double
+  const ddVals = [400, 600, 800, 800, 1000, 1000];
+  const ddVal = ddVals[Math.floor(Math.random() * ddVals.length)];
+  G.dailyDouble = { catId: ddCat.id, value: ddVal };
+
+  showScreen('game-screen');
+  renderHUD();
+  renderBoard();
+}
+
+// ════════════════════════════════════════════════════════════
+// SCREENS
+// ════════════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ════════════════════════════════════════════════════════════
+// HUD
+// ════════════════════════════════════════════════════════════
+function renderHUD() {
+  document.getElementById('player-hud').innerHTML = G.players.map((p, i) => {
+    const active = i === G.currentIdx;
+    const neg = p.score < 0;
+    return `
+      <div class="pc${active ? ' active' : ''}">
+        <div class="pc-name">${active ? '<span class="arr">▶ </span>' : ''}${p.name}</div>
+        ${p.veteran ? '<div class="pc-vet">★ VETERAN MODE</div>' : ''}
+        <div class="pc-lifelines">${p.lifelines.fiftyFifty ? '⚡' : '·'}${p.lifelines.phone ? '📞' : '·'}${p.lifelines.audience ? '👥' : '·'}</div>
+        <div class="pc-score${neg ? ' negative' : ''}">${neg ? '-' : ''}$${Math.abs(p.score).toLocaleString()}</div>
+      </div>`;
+  }).join('');
+  document.getElementById('turn-name').textContent = G.players[G.currentIdx].name;
+}
+
+// ════════════════════════════════════════════════════════════
+// BOARD
+// ════════════════════════════════════════════════════════════
+function renderBoard() {
+  const board = document.getElementById('jeopardy-board');
+  document.getElementById('cells-left-label').textContent = `${G.cellsLeft} CLUE${G.cellsLeft !== 1 ? 'S' : ''} LEFT`;
+  document.getElementById('game-lbl').textContent = 'SELECT A CLUE';
+  document.getElementById('turn-hint').textContent = 'PICK ANY OPEN CELL';
+
+  let html = '';
+
+  // Category headers
+  CATS.forEach(cat => {
+    html += `
+      <div class="bh" style="border-color:${cat.color}30; color:${cat.color};">
+        <div class="bh-icon">${cat.icon}</div>
+        <div class="bh-name">${cat.name}</div>
+      </div>`;
+  });
+
+  // Value cells — row by row
+  VALUES.forEach(val => {
+    CATS.forEach(cat => {
+      const answered = G.board[cat.id][val];
+      const isDD = G.dailyDouble && G.dailyDouble.catId === cat.id && G.dailyDouble.value === val;
+      if (answered) {
+        html += `<div class="bc answered"></div>`;
+      } else {
+        html += `<button class="bc" onclick="selectCell('${cat.id}',${val})">$${val.toLocaleString()}</button>`;
+      }
+    });
+  });
+
+  board.innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════════
+// CELL SELECTION
+// ════════════════════════════════════════════════════════════
+function selectCell(catId, value) {
+  if (G.board[catId][value]) return;
+
+  const cat = CATS.find(c => c.id === catId);
+  const player = G.players[G.currentIdx];
+
+  // Veteran mode: pull question from the next harder tier
+  let qTier = value;
+  if (player.veteran) {
+    const vi = VALUES.indexOf(value);
+    qTier = VALUES[Math.min(vi + 1, VALUES.length - 1)];
+  }
+
+  const q = pickQuestion(catId, qTier);
+  const isDD = G.dailyDouble && G.dailyDouble.catId === catId && G.dailyDouble.value === value;
+
+  G.currentCell = { catId, value, q, cat, isDD };
+
+  const overlay = document.getElementById('q-overlay');
+  overlay.classList.add('show');
+  // Remove focus from board cell so Enter can't re-activate anything
+  if (document.activeElement) document.activeElement.blur();
+
+  if (isDD) {
+    showDailyDouble();
+  } else {
+    showQuestion();
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// DAILY DOUBLE
+// ════════════════════════════════════════════════════════════
+function showDailyDouble() {
+  playDailyDoubleSound();
+  document.getElementById('dd-screen').classList.add('show');
+  document.getElementById('q-content').style.display = 'none';
+
+  const player = G.players[G.currentIdx];
+  const maxWager = Math.max(player.score, G.currentCell.value); // at least the cell value
+  const minWager = 5;
+
+  document.getElementById('dd-player-name').textContent = `${player.name} — MAKE YOUR WAGER`;
+  document.getElementById('dd-range').textContent = `WAGER $${minWager} TO $${maxWager.toLocaleString()}`;
+
+  G.ddWager = G.currentCell.value; // default to cell value
+
+  // Preset buttons
+  const presets = [];
+  if (player.score >= 5) presets.push(player.score); // all-in
+  presets.push(G.currentCell.value);                 // face value
+  if (Math.round(maxWager / 2) >= minWager) presets.push(Math.round(maxWager / 2)); // half
+  const unique = [...new Set(presets)].sort((a,b)=>a-b);
+  document.getElementById('wager-presets').innerHTML = unique.map(p =>
+    `<button class="wp-btn" onclick="setWager(${p})">$${p.toLocaleString()}</button>`).join('');
+
+  updateWagerDisplay();
+}
+
+function adjustWager(delta) {
+  const player = G.players[G.currentIdx];
+  const max = Math.max(player.score, G.currentCell.value);
+  G.ddWager = Math.min(max, Math.max(5, G.ddWager + delta));
+  updateWagerDisplay();
+}
+
+function setWager(amount) {
+  G.ddWager = amount;
+  updateWagerDisplay();
+}
+
+function updateWagerDisplay() {
+  document.getElementById('wager-display').textContent = `$${G.ddWager.toLocaleString()}`;
+}
+
+function lockWager() {
+  document.getElementById('dd-screen').classList.remove('show');
+  showQuestion();
+}
+
+// ════════════════════════════════════════════════════════════
+// QUESTION
+// ════════════════════════════════════════════════════════════
+// ── Question timer ────────────────────────────────────────
+let _qTimerInterval = null;
+const Q_TIME = 60;
+
+function startQuestionTimer() {
+  const wrap = document.getElementById('q-timer-wrap');
+  if (!G.timerEnabled) { if (wrap) wrap.style.display = 'none'; return; }
+  if (wrap) wrap.style.display = 'flex';
+
+  clearQuestionTimer();
+  let remaining = Q_TIME;
+  updateTimerUI(remaining);
+
+  _qTimerInterval = setInterval(() => {
+    remaining--;
+    updateTimerUI(remaining);
+    if (remaining <= 10 && remaining > 0) playTick();
+    if (remaining <= 0) {
+      clearQuestionTimer();
+      timeOutQuestion();
+    }
+  }, 1000);
+}
+
+function clearQuestionTimer() {
+  if (_qTimerInterval) { clearInterval(_qTimerInterval); _qTimerInterval = null; }
+}
+
+function updateTimerUI(remaining) {
+  const bar = document.getElementById('q-timer-bar');
+  const lbl = document.getElementById('q-timer-lbl');
+  if (!bar || !lbl) return;
+  const pct = (remaining / Q_TIME) * 100;
+  bar.style.width = pct + '%';
+  const state = remaining <= 10 ? 'urgent' : remaining <= 30 ? 'warn' : '';
+  bar.className = state;
+  lbl.className = state;
+  lbl.textContent = remaining;
+}
+
+function timeOutQuestion() {
+  // Disable all answer buttons and reveal correct answer
+  document.querySelectorAll('.ab').forEach(b => {
+    b.disabled = true;
+    if (+b.dataset.idx === G.currentCell.q.c) b.classList.add('correct');
+  });
+  const { q, value, catId, isDD } = G.currentCell;
+  const player = G.players[G.currentIdx];
+  const points = isDD ? G.ddWager : value;
+  player.score -= points;
+  G.board[catId][value] = true;
+  G.cellsLeft--;
+  renderHUD();
+  showResult(false, points, q.a[q.c], true);
+}
+
+function showQuestion() {
+  const { cat, value, q, isDD } = G.currentCell;
+  const content = document.getElementById('q-content');
+  content.style.display = 'flex';
+
+  const topBar = document.getElementById('q-top-bar');
+  topBar.style.background = cat.color;
+  topBar.style.color = '#000';
+
+  // Tint lifeline bar to a darker shade of the category colour
+  const lifelineBar = document.getElementById('lifeline-bar');
+  lifelineBar.style.background = cat.color + '33'; // ~20% opacity overlay
+  lifelineBar.style.borderBottom = `1px solid ${cat.color}55`;
+  lifelineBar.style.color = cat.color === '#FFCC00' ? '#fff' : cat.color;
+
+  document.getElementById('q-icon').textContent = cat.icon;
+  document.getElementById('q-cat-name').textContent = cat.name.toUpperCase();
+  document.getElementById('q-player-name').textContent = G.players[G.currentIdx].name;
+  document.getElementById('q-val-label').innerHTML = isDD
+    ? `<span style="display:block;font-size:0.58rem;letter-spacing:3px;font-weight:700;opacity:0.85">★ DAILY DOUBLE</span><span style="font-size:0.95rem;font-weight:900;letter-spacing:2px">WAGER: $${G.ddWager.toLocaleString()}</span>`
+    : `$${value.toLocaleString()}`;
+
+  const qText = document.getElementById('q-text');
+  qText.style.borderColor = cat.color;
+  qText.textContent = q.q;
+
+  const qSrc = document.getElementById('q-source');
+  qSrc.innerHTML = q.src
+    ? `<a href="${q.src}" target="_blank" rel="noopener noreferrer">📖 SOURCE — MEMORY ALPHA</a>`
+    : '';
+
+  // Shuffle answer display
+  const order = [0,1,2,3];
+  for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  G.currentCell.displayOrder = [...order]; // store for lifelines
+  const letters = ['A','B','C','D'];
+  document.getElementById('q-answers').innerHTML = order.map((orig, disp) => `
+    <button class="ab" data-idx="${orig}" onclick="submitAnswer(${orig},this)">
+      <span class="al">${letters[disp]}</span>
+      <span>${q.a[orig]}</span>
+    </button>`).join('');
+
+  // Lifeline buttons — reflect current player's remaining lifelines
+  const ll = G.players[G.currentIdx].lifelines;
+  document.getElementById('ll-5050').disabled     = !ll.fiftyFifty;
+  document.getElementById('ll-phone').disabled    = !ll.phone;
+  document.getElementById('ll-audience').disabled = !ll.audience;
+
+  startQuestionTimer();
+}
+
+function submitAnswer(selectedIdx, btn) {
+  clearQuestionTimer();
+  const { q, value, catId, isDD } = G.currentCell;
+  const correct = selectedIdx === q.c;
+  const player = G.players[G.currentIdx];
+  const points = isDD ? G.ddWager : value;
+
+  // Reveal correct/wrong
+  document.querySelectorAll('.ab').forEach(b => {
+    b.disabled = true;
+    const idx = +b.dataset.idx;
+    if (idx === q.c) b.classList.add('correct');
+    else if (b === btn) b.classList.add('wrong');
+  });
+
+  if (correct) player.score += points;
+  else player.score -= points;
+
+  // Mark cell answered
+  G.board[catId][value] = true;
+  G.cellsLeft--;
+
+  renderHUD();
+  showResult(correct, points, q.a[q.c]);
+}
+
+// ════════════════════════════════════════════════════════════
+// RESULT
+// ════════════════════════════════════════════════════════════
+function showResult(correct, points, correctAns, timedOut = false) {
+  clearQuestionTimer();
+  document.getElementById('q-overlay').classList.remove('show');
+  document.getElementById('dd-screen').classList.remove('show');
+  document.getElementById('q-content').style.display = 'none';
+
+  const rb = document.getElementById('rb');
+  rb.style.borderColor = correct ? '#66CC66' : '#FF4444';
+
+  document.getElementById('r-icon').textContent = timedOut ? '⏱' : correct ? '✅' : '❌';
+  document.getElementById('r-head').className = `r-head ${correct ? 'ok' : 'bad'}`;
+  document.getElementById('r-head').textContent = timedOut ? 'TIME\'S UP!' : correct ? 'CORRECT!' : 'INCORRECT';
+  document.getElementById('r-flavor').textContent = timedOut
+    ? 'The computer has no patience for hesitation, Captain.'
+    : (correct ? OK_LINES : BAD_LINES)[Math.floor(Math.random() * 6)];
+
+  const ptEl = document.getElementById('r-pts');
+  ptEl.className = `r-pts ${correct ? 'gain' : 'loss'}`;
+  ptEl.textContent = correct ? `+$${points.toLocaleString()}` : `-$${points.toLocaleString()}`;
+
+  document.getElementById('r-ans').textContent = correct ? '' : `✓ CORRECT ANSWER: ${correctAns}`;
+
+  const src = G.currentCell?.q?.src;
+  const rSrc = document.getElementById('r-source');
+  if (rSrc) rSrc.innerHTML = src
+    ? `<a href="${src}" target="_blank" rel="noopener noreferrer">📖 Verify on Memory Alpha</a>`
+    : '';
+
+  const boardNote = document.getElementById('r-board-note');
+  if (G.cellsLeft === 0) {
+    boardNote.textContent = '🏁 BOARD CLEARED — CALCULATING WINNER';
+    boardNote.style.display = 'block';
+  } else {
+    boardNote.textContent = `${G.cellsLeft} CLUE${G.cellsLeft !== 1 ? 'S' : ''} REMAINING ON THE BOARD`;
+    boardNote.style.display = 'block';
+  }
+
+  document.getElementById('result-overlay').classList.add('show');
+  if (correct) { launchFireworks(); playCorrectSound(); }
+  else          { playWrongSound(); }
+}
+
+// ════════════════════════════════════════════════════════════
+// QUESTION PICKING — no duplicates within a session
+// ════════════════════════════════════════════════════════════
+function pickQuestion(catId, tier) {
+  let pool = Q_BY_TIER[tier];
+  if(!pool || !pool.length) {
+    for(const t of [400, 600, 800, 200, 1000]) { if(Q_BY_TIER[t] && Q_BY_TIER[t].length){ pool = Q_BY_TIER[t]; break; } }
+  }
+  const unused = pool.filter(q => !G.usedQTexts.has(q.q));
+  const source = unused.length > 0 ? unused : pool; // fallback if whole pool exhausted
+  const picked = source[Math.floor(Math.random() * source.length)];
+  G.usedQTexts.add(picked.q);
+  return picked;
+}
+
+// ════════════════════════════════════════════════════════════
+// LIFELINES
+// ════════════════════════════════════════════════════════════
+function useLifeline(type) {
+  const player = G.players[G.currentIdx];
+  const ll = player.lifelines;
+  const { q, displayOrder } = G.currentCell;
+
+  if (type === '5050' && ll.fiftyFifty) {
+    ll.fiftyFifty = false;
+    document.getElementById('ll-5050').disabled = true;
+    // Hide 2 random wrong answers
+    const wrongBtns = [...document.querySelectorAll('.ab')].filter(b => +b.dataset.idx !== q.c);
+    for (let i = wrongBtns.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [wrongBtns[i], wrongBtns[j]] = [wrongBtns[j], wrongBtns[i]];
+    }
+    wrongBtns.slice(0, 2).forEach(b => { b.style.opacity = '0.12'; b.disabled = true; });
+    playPencilScratch();
+    renderHUD();
+  }
+
+  if (type === 'phone' && ll.phone) {
+    ll.phone = false;
+    document.getElementById('ll-phone').disabled = true;
+    renderHUD();
+    showPhoneOverlay(q);
+  }
+
+  if (type === 'audience' && ll.audience) {
+    ll.audience = false;
+    document.getElementById('ll-audience').disabled = true;
+    renderHUD();
+    showAudienceOverlay(q, displayOrder);
+  }
+}
+
+// ── Phone a Friend ──
+const PHONE_FRIENDS = [
+  { name: 'COUNSELOR TROI', avatar: '🖖', intro: "I'm sensing the answer is..." },
+  { name: 'LT. CMDR. DATA', avatar: '🤖', intro: "Processing... My analysis indicates..." },
+  { name: 'GUINAN', avatar: '🎩', intro: "I've been around long enough to know..." },
+  { name: 'COMMANDER LA FORGE', avatar: '🔬', intro: "Running the numbers — I'm pretty sure it's..." },
+];
+// ── Voice selection — prefer neural/online British female ──
+const FEMALE_NAMES  = /female|woman|girl|zira|hazel|fiona|kate|serena|emily|moira|veena|victoria|samantha|karen|tessa|allison|ava|susan|sonia|libby|mia|aria|jenny|natasha|google\s+uk\s+english\s+female/i;
+const NEURAL_MARKER = /natural|neural|online|premium/i;
+
+let _britishVoice = null;
+function getBritishVoice() {
+  if (_britishVoice) return _britishVoice;
+  const voices = speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  const score = v => {
+    let s = 0;
+    if (v.lang.startsWith('en-GB'))    s += 40;
+    if (NEURAL_MARKER.test(v.name))    s += 20;
+    if (FEMALE_NAMES.test(v.name))     s += 15;
+    if (v.lang.startsWith('en'))       s +=  5;
+    return s;
+  };
+
+  const sorted = [...voices].sort((a, b) => score(b) - score(a));
+  _britishVoice = sorted[0] || null;
+  return _britishVoice;
+}
+
+// Make text sound more natural with pacing hints
+function naturalise(text) {
+  return text
+    .replace(/\.\.\./g, ', ')           // ellipsis → soft pause
+    .replace(/([,;:])\s/g, '$1 ')       // keep natural comma pauses
+    .replace(/(\w)—(\w)/g, '$1, $2')    // em-dash → comma pause
+    .replace(/\bi\b/g, 'I');            // capitalise lone i
+}
+
+function speakBritish(text) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+
+  const voice = getBritishVoice();
+  const isNeural = voice && NEURAL_MARKER.test(voice.name);
+
+  const utter = new SpeechSynthesisUtterance(naturalise(text));
+  utter.lang  = 'en-GB';
+  utter.rate  = isNeural ? 0.95 : 0.88;   // neural voices need less slowing
+  utter.pitch = isNeural ? 1.0  : 1.12;   // neural voices sound best flat
+  utter.volume = 1;
+  if (voice) utter.voice = voice;
+  speechSynthesis.speak(utter);
+}
+
+function showPhoneOverlay(q) {
+  const friend = PHONE_FRIENDS[Math.floor(Math.random() * PHONE_FRIENDS.length)];
+  const isRight = Math.random() < 0.75;
+  let answerIdx;
+  if (isRight) {
+    answerIdx = q.c;
+  } else {
+    const wrongs = [0,1,2,3].filter(i => i !== q.c);
+    answerIdx = wrongs[Math.floor(Math.random() * wrongs.length)];
+  }
+  const answerText = q.a[answerIdx];
+
+  document.getElementById('phone-avatar').textContent = friend.avatar;
+  document.getElementById('phone-thinking').textContent = `${friend.name}: ${friend.intro}`;
+  document.getElementById('phone-answer').textContent = '';
+  document.getElementById('phone-overlay').classList.add('show');
+
+  // Ensure voices are loaded (they load async on first call)
+  const revealAndSpeak = () => {
+    document.getElementById('phone-answer').textContent = `"${answerText}"`;
+    speakBritish(`${friend.intro} ${answerText}`);
+  };
+
+  if (speechSynthesis.getVoices().length === 0) {
+    speechSynthesis.addEventListener('voiceschanged', revealAndSpeak, { once: true });
+    setTimeout(revealAndSpeak, 1400); // fallback if event never fires
+  } else {
+    setTimeout(revealAndSpeak, 1400);
+  }
+}
+
+function dismissPhone() {
+  speechSynthesis.cancel();
+  document.getElementById('phone-overlay').classList.remove('show');
+}
+
+// ── Ask the Audience ──
+function showAudienceOverlay(q, displayOrder) {
+  const letters = ['A','B','C','D'];
+  const correctWins = Math.random() < 0.70;
+  const percents = buildAudiencePercents(q.c, displayOrder, correctWins);
+
+  const html = displayOrder.map((origIdx, dispIdx) => `
+    <div class="aud-row">
+      <span class="aud-ltr">${letters[dispIdx]}</span>
+      <div class="aud-bar-wrap">
+        <div class="aud-bar-fill" id="aud-fill-${dispIdx}" style="width:0%"></div>
+      </div>
+      <span class="aud-pct" id="aud-pct-${dispIdx}">0%</span>
+      <span class="aud-ans">${q.a[origIdx]}</span>
+    </div>`).join('');
+
+  document.getElementById('aud-bars').innerHTML = html;
+  document.getElementById('audience-overlay').classList.add('show');
+
+  // Play crowd chanting — volume per letter weighted by its percentage
+  playAudienceChant(percents, letters);
+
+  // Animate bars after a tick
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    displayOrder.forEach((_, di) => {
+      const pct = percents[di];
+      document.getElementById(`aud-fill-${di}`).style.width = `${pct}%`;
+      document.getElementById(`aud-pct-${di}`).textContent = `${pct}%`;
+    });
+  }));
+}
+
+function buildAudiencePercents(correctOrigIdx, displayOrder, correctWins) {
+  // Map display positions to original indices; find display position of correct answer
+  const correctDispIdx = displayOrder.indexOf(correctOrigIdx);
+  const n = displayOrder.length;
+  let vals = new Array(n).fill(0);
+
+  if (correctWins) {
+    const top = 50 + Math.floor(Math.random() * 26); // 50–75%
+    vals[correctDispIdx] = top;
+    const rest = spreadRemainder(100 - top, n - 1);
+    let ri = 0;
+    for (let i = 0; i < n; i++) { if (i !== correctDispIdx) vals[i] = rest[ri++]; }
+  } else {
+    const wrongPositions = displayOrder.map((_, i) => i).filter(i => i !== correctDispIdx);
+    const topIdx = wrongPositions[Math.floor(Math.random() * wrongPositions.length)];
+    const top = 38 + Math.floor(Math.random() * 28); // 38–65%
+    vals[topIdx] = top;
+    const rest = spreadRemainder(100 - top, n - 1);
+    let ri = 0;
+    for (let i = 0; i < n; i++) { if (i !== topIdx) vals[i] = rest[ri++]; }
+  }
+  return vals;
+}
+
+function spreadRemainder(total, count) {
+  // Randomly distribute `total` across `count` integers >= 1, summing exactly
+  const parts = Array.from({length: count}, () => 1);
+  let left = total - count;
+  for (let i = 0; i < left; i++) parts[Math.floor(Math.random() * count)]++;
+  // Shuffle
+  for (let i = parts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [parts[i], parts[j]] = [parts[j], parts[i]];
+  }
+  return parts;
+}
+
+function dismissAudience() {
+  document.getElementById('audience-overlay').classList.remove('show');
+}
+
+function playAudienceChant(percents, letters) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    ctx.resume().then(() => {
+      const now = ctx.currentTime;
+
+      // beep-boop-beep: high, low, high
+      const master = ctx.createGain();
+      master.gain.value = 0.5;
+      master.connect(ctx.destination);
+
+      const tones = [
+        { freq: 880, t: 0.0 },
+        { freq: 440, t: 0.25 },
+        { freq: 880, t: 0.5 },
+      ];
+
+      tones.forEach(({ freq, t }) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.value = freq;
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, now + t);
+        gain.gain.linearRampToValueAtTime(0.125, now + t + 0.02);
+        gain.gain.setValueAtTime(0.125, now + t + 0.14);
+        gain.gain.linearRampToValueAtTime(0, now + t + 0.18);
+
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start(now + t);
+        osc.stop(now + t + 0.2);
+      });
+
+      setTimeout(() => ctx.close(), 1200);
+    });
+  } catch(e) { console.error('Audience sound error:', e); }
+}
+
+function playDailyDoubleSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    ctx.resume().then(() => {
+      const now = ctx.currentTime;
+      // Ascending brass fanfare: 4 notes (like a game show sting)
+      const notes = [
+        [261.6, 0.10, 0.65],  // C4
+        [329.6, 0.11, 0.72],  // E4
+        [392.0, 0.12, 0.80],  // G4
+        [523.3, 0.38, 1.00],  // C5 — held
+      ];
+
+      let t = now;
+      notes.forEach(([freq, dur, vol]) => {
+        // Sawtooth for brass-like harmonics
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.value = freq;
+
+        // Warm the tone with a lowpass (no piercing highs)
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 2400;
+        lp.Q.value = 1.2;
+
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * 0.75, t + 0.012); // sharp brass attack
+        g.gain.setValueAtTime(vol * 0.75, t + dur - 0.04);
+        g.gain.linearRampToValueAtTime(0, t + dur);
+
+        osc.connect(lp); lp.connect(g); g.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + dur + 0.05);
+        t += dur;
+      });
+
+      // Quick noise burst at start (brass transient "pop")
+      const nbuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.06), ctx.sampleRate);
+      const nd = nbuf.getChannelData(0);
+      for (let i = 0; i < nd.length; i++)
+        nd[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.018));
+      const ns = ctx.createBufferSource(); ns.buffer = nbuf;
+      const ng = ctx.createGain(); ng.gain.value = 0.25;
+      const nhp = ctx.createBiquadFilter(); nhp.type = 'highpass'; nhp.frequency.value = 2000;
+      ns.connect(nhp); nhp.connect(ng); ng.connect(ctx.destination);
+      ns.start(now); ns.stop(now + 0.07);
+    });
+  } catch(e) { /* silent fail */ }
+}
+
+function playPencilScratch() {
+  try {
+    const ctx = _audioCtx();
+    ctx.resume().then(() => {
+      const now = ctx.currentTime;
+      // Two quick strokes (like drawing a line through each wrong answer)
+      [0, 0.20].forEach((offset) => {
+        const strokeLen = Math.floor(ctx.sampleRate * 0.19);
+        const buf = ctx.createBuffer(1, strokeLen, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < strokeLen; i++) {
+          const t = i / ctx.sampleRate;
+          // Fast attack in first 6ms, then exponential decay
+          const att = Math.min(1, t / 0.006);
+          const dec = Math.exp(-t * 22);
+          data[i] = (Math.random() * 2 - 1) * att * dec;
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+
+        // High-frequency paper/pencil texture
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 3000;
+        hp.Q.value = 0.7;
+
+        const bp = ctx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.value = 5500 + offset * 1000;
+        bp.Q.value = 1.8;
+
+        // Slight low-mid thump (pencil pressure on paper)
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'peaking';
+        lp.frequency.value = 900;
+        lp.gain.value = 8;
+        lp.Q.value = 2;
+
+        const g = ctx.createGain();
+        g.gain.value = 1.8;
+
+        src.connect(hp);  hp.connect(bp);  bp.connect(lp);  lp.connect(g);  g.connect(ctx.destination);
+        src.start(now + offset);
+        src.stop(now + offset + 0.2);
+      });
+    });
+  } catch(e) { /* silent fail */ }
+}
+
+// ════════════════════════════════════════════════════════════
+// FIREWORKS  🍆
+// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// SOUND EFFECTS  (Web Audio API — no external files needed)
+// ════════════════════════════════════════════════════════════
+function playTick() {
+  try {
+    const ctx = _audioCtx();
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.04, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      // Short sharp click: sine burst decaying fast
+      data[i] = Math.sin(2 * Math.PI * 1200 * i / ctx.sampleRate)
+                * Math.exp(-i / (ctx.sampleRate * 0.006));
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    src.connect(gain);
+    gain.connect(ctx.destination);
+    src.start();
+  } catch(e) {}
+}
+
+function _audioCtx() {
+  return new (window.AudioContext || window.webkitAudioContext)();
+}
+
+// Firecracker burst — correct answer
+function playCorrectSound() {
+  try {
+    const ctx = _audioCtx();
+    const master = ctx.createGain();
+    master.gain.value = 0.55;
+    master.connect(ctx.destination);
+
+    // Create a noise buffer once and reuse
+    const bufLen = ctx.sampleRate * 0.18;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+
+    const popCount = 14;
+    for (let i = 0; i < popCount; i++) {
+      const t = ctx.currentTime + i * 0.07 + Math.random() * 0.04;
+
+      // Noise source
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+
+      // Bandpass — bright firecracker crack
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 1800 + Math.random() * 4000;
+      bp.Q.value = 0.7;
+
+      // Envelope
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0.001, t);
+      env.gain.linearRampToValueAtTime(0.9, t + 0.003);
+      env.gain.exponentialRampToValueAtTime(0.001, t + 0.06 + Math.random() * 0.04);
+
+      src.connect(bp); bp.connect(env); env.connect(master);
+      src.start(t); src.stop(t + 0.12);
+    }
+
+    // Rising whistle before each burst group
+    for (let w = 0; w < 3; w++) {
+      const osc = ctx.createOscillator();
+      const wGain = ctx.createGain();
+      const wt = ctx.currentTime + w * 0.32;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, wt);
+      osc.frequency.exponentialRampToValueAtTime(2400, wt + 0.18);
+      wGain.gain.setValueAtTime(0.12, wt);
+      wGain.gain.exponentialRampToValueAtTime(0.001, wt + 0.18);
+      osc.connect(wGain); wGain.connect(master);
+      osc.start(wt); osc.stop(wt + 0.2);
+    }
+
+    // Close context after sounds finish
+    setTimeout(() => ctx.close(), 2500);
+  } catch(e) {}
+}
+
+// Sad trombone — wrong answer ("wah wah wah waaaah")
+function playWrongSound() {
+  try {
+    const ctx = _audioCtx();
+
+    // Low-pass filter for muted brass quality
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 900;
+    filter.Q.value = 1.2;
+
+    const master = ctx.createGain();
+    master.gain.value = 0.42;
+    filter.connect(master);
+    master.connect(ctx.destination);
+
+    // "wah wah wah waaaah" — classic descending Price Is Right pattern
+    // Each wah: sawtooth osc with envelope, slight detune for warmth
+    const wahs = [
+      { freq: 520, start: 0.0,  dur: 0.22 },
+      { freq: 440, start: 0.27, dur: 0.22 },
+      { freq: 370, start: 0.54, dur: 0.22 },
+      { freq: 311, start: 0.81, dur: 1.5, slideTo: 110 },  // long descending waaaah
+    ];
+
+    wahs.forEach(({ freq, start, dur, slideTo }) => {
+      [0, 4, -4].forEach(detune => {   // 3 oscillators slightly detuned = richer brass
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.detune.value = detune;
+
+        const t = ctx.currentTime + start;
+        osc.frequency.setValueAtTime(freq, t);
+        if (slideTo) {
+          osc.frequency.setValueAtTime(freq, t + 0.05);
+          osc.frequency.exponentialRampToValueAtTime(slideTo, t + dur - 0.1);
+        }
+
+        // Wah envelope: quick attack, slight swell, fade out
+        gain.gain.setValueAtTime(0.001, t);
+        gain.gain.linearRampToValueAtTime(0.35, t + 0.04);
+        gain.gain.setValueAtTime(0.35,   t + dur - 0.08);
+        gain.gain.linearRampToValueAtTime(0.001, t + dur);
+
+        osc.connect(gain); gain.connect(filter);
+        osc.start(t); osc.stop(t + dur + 0.05);
+      });
+    });
+
+    setTimeout(() => ctx.close(), 3500);
+  } catch(e) {}
+}
+
+function launchFireworks() {
+  const canvas = document.getElementById('fireworks-canvas');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  const colors = ['#FF9900','#FFC300','#FF6699','#66CC66','#6699FF','#CC66CC','#FFFFFF'];
+  const particles = [];
+
+  // Multiple burst origins
+  for (let b = 0; b < 9; b++) {
+    const bx = 0.1 * canvas.width + Math.random() * 0.8 * canvas.width;
+    const by = 0.05 * canvas.height + Math.random() * 0.55 * canvas.height;
+    const count = 22 + Math.floor(Math.random() * 12);
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 / count) * i + Math.random() * 0.3;
+      const speed = 3.5 + Math.random() * 5;
+      const useEmoji = Math.random() < 0.25;
+      particles.push({
+        x: bx, y: by,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1.5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: useEmoji ? 18 + Math.random() * 14 : 3 + Math.random() * 4,
+        life: 1,
+        decay: 0.012 + Math.random() * 0.012,
+        emoji: useEmoji,
+        delay: b * 90,
+        born: false,
+        birthTime: Date.now() + b * 90,
+      });
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const now = Date.now();
+    let alive = false;
+    for (const p of particles) {
+      if (now < p.birthTime) { alive = true; continue; }
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.12;
+      p.vx *= 0.98;
+      p.life -= p.decay;
+      if (p.life <= 0) continue;
+      alive = true;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life);
+      if (p.emoji) {
+        ctx.font = `${p.size}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🍆', p.x, p.y);
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    if (alive) requestAnimationFrame(animate);
+    else canvas.style.display = 'none';
+  }
+  animate();
+}
+
+function continueAfterResult() {
+  document.getElementById('result-overlay').classList.remove('show');
+
+  if (G.cellsLeft === 0) {
+    endGame();
+    return;
+  }
+
+  G.currentIdx = (G.currentIdx + 1) % G.players.length;
+  renderHUD();
+  renderBoard();
+}
+
+// ════════════════════════════════════════════════════════════
+// GAME OVER
+// ════════════════════════════════════════════════════════════
+function endGame() {
+  const sorted = [...G.players]
+    .map((p, i) => ({...p, i}))
+    .sort((a, b) => b.score - a.score);
+  const winner = sorted[0];
+
+  // Populate winner overlay
+  document.getElementById('winner-name-big').textContent = winner.name;
+  const neg = winner.score < 0;
+  document.getElementById('winner-score-big').textContent =
+    (neg ? '-' : '') + '$' + Math.abs(winner.score).toLocaleString();
+
+  const medals = ['🥇','🥈','🥉','4️⃣'];
+  document.getElementById('w-scores').innerHTML = sorted.map((p, rank) => {
+    const pneg = p.score < 0;
+    return `<div class="w-score-row${rank === 0 ? ' w-win' : ''}">
+      <span class="w-rank">${medals[rank] || rank+1}</span>
+      <span class="w-name">${p.name}</span>
+      <span class="w-pts${pneg ? ' neg' : ''}">${pneg ? '-' : ''}$${Math.abs(p.score).toLocaleString()}</span>
+    </div>`;
+  }).join('');
+
+  updateLeaderboard(sorted);
+  document.getElementById('winner-overlay').classList.add('show');
+  launchEndgameFireworks();
+  playWinnerSound();
+}
+
+function newGameFromWinner() {
+  stopEndgameFireworks();
+  document.getElementById('winner-overlay').classList.remove('show');
+  resetGame();
+}
+
+function resetGame() {
+  G = { players:[], currentIdx:0, board:{}, cellsLeft:30, dailyDouble:null, ddWager:200, currentCell:null };
+  showScreen('setup-screen');
+}
+
+// ── Continuous endgame fireworks ──
+let _egRunning = false;
+let _egRaf    = null;
+let _egTimer  = null;
+let _egParts  = [];
+
+function launchEndgameFireworks() {
+  _egRunning = true;
+  _egParts   = [];
+
+  const canvas = document.getElementById('fireworks-canvas');
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  const colors = ['#FF9900','#FFC300','#FF6699','#66CC66','#6699FF','#CC66CC','#FFFFFF','#FF4444'];
+
+  function spawnBurst() {
+    if (!_egRunning) return;
+    const bx = 0.08 * canvas.width  + Math.random() * 0.84 * canvas.width;
+    const by = 0.04 * canvas.height + Math.random() * 0.55 * canvas.height;
+    const count = 24 + Math.floor(Math.random() * 14);
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 / count) * i + Math.random() * 0.25;
+      const speed = 3 + Math.random() * 5.5;
+      const emoji = Math.random() < 0.22;
+      _egParts.push({
+        x: bx, y: by,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1.8,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: emoji ? 18 + Math.random() * 12 : 3 + Math.random() * 4,
+        life: 1, decay: 0.011 + Math.random() * 0.011,
+        emoji,
+      });
+    }
+    _egTimer = setTimeout(spawnBurst, 280 + Math.random() * 250);
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    _egParts = _egParts.filter(p => p.life > 0);
+    for (const p of _egParts) {
+      p.x += p.vx; p.y += p.vy;
+      p.vy += 0.11; p.vx *= 0.98;
+      p.life -= p.decay;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life);
+      if (p.emoji) {
+        ctx.font = `${p.size}px serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('🍆', p.x, p.y);
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color; ctx.shadowBlur = 6;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+    _egRaf = requestAnimationFrame(animate);
+  }
+
+  spawnBurst();
+  animate();
+}
+
+function stopEndgameFireworks() {
+  _egRunning = false;
+  if (_egTimer) clearTimeout(_egTimer);
+  if (_egRaf)   cancelAnimationFrame(_egRaf);
+  _egParts = [];
+  const canvas = document.getElementById('fireworks-canvas');
+  canvas.style.display = 'none';
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// ── Price is Right winner ding ding ding ──
+function playWinnerSound() {
+  try {
+    const ctx = _audioCtx();
+    const master = ctx.createGain();
+    master.gain.value = 0.5;
+    master.connect(ctx.destination);
+
+    // Ascending bell arpeggio then triumphant flourish
+    const notes = [
+      { f: 523,  t: 0.00 }, // C5
+      { f: 659,  t: 0.10 }, // E5
+      { f: 784,  t: 0.20 }, // G5
+      { f: 1047, t: 0.30 }, // C6
+      { f: 784,  t: 0.45 }, // G5
+      { f: 1047, t: 0.55 }, // C6
+      { f: 1319, t: 0.65 }, // E6
+      { f: 1568, t: 0.80 }, // G6  — big finish
+      { f: 1319, t: 0.92 }, // E6
+      { f: 1568, t: 1.02 }, // G6
+    ];
+
+    notes.forEach(({ f, t }) => {
+      // Bell tone = sine + 2nd harmonic for brightness
+      [1, 2].forEach((harmonic, hi) => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = f * harmonic;
+        const st = ctx.currentTime + t;
+        const vol = hi === 0 ? 0.38 : 0.12;
+        gain.gain.setValueAtTime(0.001, st);
+        gain.gain.linearRampToValueAtTime(vol, st + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, st + 1.1);
+        osc.connect(gain); gain.connect(master);
+        osc.start(st); osc.stop(st + 1.15);
+      });
+    });
+
+    setTimeout(() => ctx.close(), 3500);
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════════════
+// LEADERBOARD
+// ════════════════════════════════════════════════════════════
+const LB_KEY = 'trek_trivia_leaderboard';
+
+function loadLeaderboard() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveLeaderboard(data) {
+  localStorage.setItem(LB_KEY, JSON.stringify(data));
+}
+
+function updateLeaderboard(sortedPlayers) {
+  // sortedPlayers[0] is the winner
+  const lb = loadLeaderboard();
+  sortedPlayers.forEach((p, rank) => {
+    const key = p.name.toUpperCase().trim();
+    let entry = lb.find(e => e.name === key);
+    if (!entry) {
+      entry = { name: key, wins: 0, gamesPlayed: 0, bestScore: 0, lastPlayed: '' };
+      lb.push(entry);
+    }
+    entry.gamesPlayed++;
+    if (rank === 0) entry.wins++;
+    if (p.score > entry.bestScore) entry.bestScore = p.score;
+    entry.lastPlayed = new Date().toISOString().slice(0, 10);
+  });
+  saveLeaderboard(lb);
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+buildPlayerInputs();
+
+// Capture-phase listener on q-overlay: block Enter unless result overlay is showing
+document.getElementById('q-overlay').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !document.getElementById('result-overlay').classList.contains('show')) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+}, true);
+
+// Enter on result screen = continue
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.getElementById('result-overlay').classList.contains('show')) {
+    continueAfterResult();
+  }
+});
+</script>
+</body>
+</html>
