@@ -44,7 +44,7 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      `INSERT INTO users (username, email, password_hash, display_name)
+      `INSERT INTO trivia.users (username, email, password_hash, display_name)
        VALUES ($1, $2, $3, $4) RETURNING id, username, email, display_name`,
       [username, email, hash, display_name || username]
     );
@@ -68,14 +68,14 @@ app.post('/api/auth/login', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      `SELECT id, username, email, password_hash, display_name FROM users WHERE username = $1`,
+      `SELECT id, username, email, password_hash, display_name FROM trivia.users WHERE username = $1`,
       [username]
     );
     const user = result.rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    await pool.query(`UPDATE users SET last_login = NOW() WHERE id = $1`, [user.id]);
+    await pool.query(`UPDATE trivia.users SET last_login = NOW() WHERE id = $1`, [user.id]);
     delete user.password_hash;
     const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user });
@@ -88,13 +88,56 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', authenticate, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, username, email, display_name, created_at FROM users WHERE id = $1`,
+      `SELECT id, username, email, display_name, created_at FROM trivia.users WHERE id = $1`,
       [req.user.id]
     );
     if (!result.rows[0]) return res.status(404).json({ error: 'User not found' });
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+// ── Questions API ─────────────────────────────────────────────────────────────
+
+// Get all questions for a game (with optional difficulty filter)
+app.get('/api/questions/:game', async (req, res) => {
+  const { game } = req.params;
+  const { difficulty } = req.query;
+  try {
+    let query = `SELECT id, difficulty, question, options, correct_index, source FROM trivia.questions WHERE game = $1`;
+    const params = [game];
+    if (difficulty) {
+      query += ` AND difficulty = $2`;
+      params.push(parseInt(difficulty));
+    }
+    query += ` ORDER BY difficulty, id`;
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch questions' });
+  }
+});
+
+// Get one random question for a game (for single-player mode)
+app.get('/api/question/:game/random', async (req, res) => {
+  const { game } = req.params;
+  const { difficulty } = req.query;
+  try {
+    let query = `SELECT id, difficulty, question, options, correct_index, source FROM trivia.questions WHERE game = $1`;
+    const params = [game];
+    if (difficulty) {
+      query += ` AND difficulty = $2`;
+      params.push(parseInt(difficulty));
+    }
+    query += ` ORDER BY RANDOM() LIMIT 1`;
+    const result = await pool.query(query, params);
+    if (!result.rows[0]) return res.status(404).json({ error: 'No questions found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch question' });
   }
 });
 
@@ -107,15 +150,15 @@ app.post('/api/scores', authenticate, async (req, res) => {
   }
   try {
     const result = await pool.query(
-      `INSERT INTO scores (user_id, game, score, questions_answered, correct_answers)
+      `INSERT INTO trivia.scores (user_id, game, score, questions_answered, correct_answers)
        VALUES ($1, $2, $3, $4, $5) RETURNING id`,
       [req.user.id, game, score, questions_answered || 0, correct_answers || 0]
     );
 
     // Get rank
     const rankResult = await pool.query(
-      `SELECT COUNT(*) + 1 as rank FROM scores
-       WHERE game = $1 AND score > (SELECT score FROM scores WHERE id = $2)`,
+      `SELECT COUNT(*) + 1 as rank FROM trivia.scores
+       WHERE game = $1 AND score > (SELECT score FROM trivia.scores WHERE id = $2)`,
       [game, result.rows[0].id]
     );
     res.json({ id: result.rows[0].id, rank: parseInt(rankResult.rows[0].rank) });
@@ -131,8 +174,8 @@ app.get('/api/scores/:game/leaderboard', async (req, res) => {
     const result = await pool.query(
       `SELECT u.username, u.display_name, MAX(s.score) as best_score,
               COUNT(s.id) as games_played, MAX(s.played_at) as last_played
-       FROM scores s
-       JOIN users u ON u.id = s.user_id
+       FROM trivia.scores s
+       JOIN trivia.users u ON u.id = s.user_id
        WHERE s.game = $1
        GROUP BY u.id, u.username, u.display_name
        ORDER BY best_score DESC, last_played ASC
@@ -156,11 +199,11 @@ app.get('/api/scores/:game/leaderboard', async (req, res) => {
 
 app.get('/api/scores/:game/:username', async (req, res) => {
   try {
-    const userResult = await pool.query(`SELECT id FROM users WHERE username = $1`, [req.params.username]);
+    const userResult = await pool.query(`SELECT id FROM trivia.users WHERE username = $1`, [req.params.username]);
     if (!userResult.rows[0]) return res.status(404).json({ error: 'User not found' });
     const scores = await pool.query(
       `SELECT score, questions_answered, correct_answers, played_at
-       FROM scores WHERE user_id = $1 AND game = $2
+       FROM trivia.scores WHERE user_id = $1 AND game = $2
        ORDER BY played_at DESC LIMIT 20`,
       [userResult.rows[0].id, req.params.game]
     );
@@ -171,35 +214,6 @@ app.get('/api/scores/:game/:username', async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
-
-// ── DB Init ─────────────────────────────────────────────────────────────────
-async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      username VARCHAR(30) UNIQUE NOT NULL,
-      email VARCHAR(255) UNIQUE NOT NULL,
-      password_hash VARCHAR(255) NOT NULL,
-      display_name VARCHAR(50),
-      created_at TIMESTAMP DEFAULT NOW(),
-      last_login TIMESTAMP
-    )
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS scores (
-      id SERIAL PRIMARY KEY,
-      user_id INT REFERENCES users(id),
-      game VARCHAR(30) NOT NULL,
-      score INT NOT NULL,
-      questions_answered INT DEFAULT 0,
-      correct_answers INT DEFAULT 0,
-      played_at TIMESTAMP DEFAULT NOW()
-    )
-  `);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_scores_game_user ON scores(game, user_id)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_scores_score ON scores(game, score DESC)`);
-  console.log('DB tables ready');
-}
 
 // ── WebSocket Multiplayer ────────────────────────────────────────────────────
 const wss = new WebSocketServer({ server, path: '/play' });
@@ -322,21 +336,30 @@ async function startGame(gameName, players) {
     players: players.map(p => ({ ...p, score: 0, answered: false, answer_index: null, answer_time: null })),
     current_round: 0,
     total_rounds: 10,
-    questions: [],  // loaded from JSON
+    questions: [],  // loaded from DB
     round_active: false
   };
   activeGames[gameId] = game;
 
-  // Load questions
-  const fs = require('fs');
-  const path = `/app/${gameName}/Trek_Q.json`;
+  // Load questions from database
   try {
-    const data = fs.readFileSync(path, 'utf-8');
-    const allQ = JSON.parse(data);
-    // Shuffle and pick N
-    const shuffled = allQ.sort(() => Math.random() - 0.5);
-    game.questions = shuffled.slice(0, game.total_rounds);
-  } catch {
+    const result = await pool.query(
+      `SELECT question, options, correct_index FROM trivia.questions WHERE game = $1 ORDER BY RANDOM() LIMIT $2`,
+      [gameName, game.total_rounds]
+    );
+    if (result.rows.length > 0) {
+      game.questions = result.rows.map(row => ({
+        q: row.question,
+        options: row.options,  // already a JSON array from DB
+        a: row.correct_index
+      }));
+    }
+  } catch (err) {
+    console.error('Error loading questions from DB:', err);
+  }
+
+  // Fallback if no questions in DB
+  if (game.questions.length === 0) {
     game.questions = Array(game.total_rounds).fill({
       q: 'Sample question?',
       options: ['A', 'B', 'C', 'D'],
@@ -426,7 +449,7 @@ function endGame(game) {
   game.players.forEach(async p => {
     try {
       await pool.query(
-        `INSERT INTO scores (user_id, game, score, questions_answered, correct_answers)
+        `INSERT INTO trivia.scores (user_id, game, score, questions_answered, correct_answers)
          VALUES ($1, $2, $3, $4, $5)`,
         [p.user.id, game.game, p.score, game.total_rounds, Math.round(game.total_rounds / 2)]
       );
@@ -437,8 +460,6 @@ function endGame(game) {
 }
 
 // ── Start ────────────────────────────────────────────────────────────────────
-initDB().then(() => {
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Trivia Vault server running on port ${PORT}`);
-  });
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Trivia Vault server running on port ${PORT}`);
 });
