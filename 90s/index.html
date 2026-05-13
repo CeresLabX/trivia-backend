@@ -734,44 +734,105 @@ async function loadQuestions(game) {
   try {
     const res = await fetch(`/api/questions/${game}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const questions = await res.json();
+
+    // Hardcoded 90s categories — API returns flat array, no category field
+    CATS = [
+      { id: 'movies', name: '90s Movies',     color: '#FF1493', icon: '🎬', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'music',  name: '90s Music',      color: '#FF9900', icon: '🎵', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'tv',     name: '90s TV',         color: '#7799FF', icon: '📺', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'pop',    name: 'Pop Culture',    color: '#FF69B4', icon: '🌟', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'sports', name: '90s Sports',     color: '#00CCFF', icon: '🏆', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'games',  name: 'Video Games',   color: '#AA44FF', icon: '🕹️', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+    ];
 
     // Reset tiers
     TIERS = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
-    CATS = [];
 
-    // Group questions by category, then by difficulty (→ tier)
-    const catMap = {};
-    data.forEach(q => {
+    // Distribute flat API questions across hardcoded categories (round-robin)
+    questions.forEach((q, i) => {
       const pts = difficultyToPts[q.difficulty] ?? 200;
-      TIERS[pts].push(q);
-      if (!catMap[q.category]) {
-        catMap[q.category] = { id: q.category.toLowerCase().replace(/\s+/g,'-'), name: q.category, color: '#FF1493', icon: '❓', q: {} };
-      }
-      if (!catMap[q.category].q[pts]) catMap[q.category].q[pts] = [];
-      catMap[q.category].q[pts].push(q);
+      const cat = CATS[i % CATS.length];
+      const questionObj = { q: q.question, a: q.options, c: q.correct_index ?? 0, catId: cat.id, catName: cat.name, catColor: cat.color, catIcon: cat.icon };
+      TIERS[pts].push(questionObj);
+      if (cat.q[pts]) cat.q[pts].push(questionObj);
     });
-
-    CATS = Object.values(catMap);
-
-    // Re-init board state if G exists
-    if (typeof G !== 'undefined' && G.board) {
-      G.board = {};
-      CATS.forEach(cat => {
-        G.board[cat.id] = {};
-        VALUES.forEach(v => G.board[cat.id][v] = false);
-      });
-      G.dailyDouble = null;
-      G.cellsLeft = CATS.length * VALUES.length;
-      G.usedQTexts = new Set();
-      renderBoard();
-    }
   } catch (err) {
     console.error('loadQuestions failed:', err);
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => loadQuestions('90s'));
+
+
+// ===========================================================
+// SCREEN NAVIGATION
+// ===========================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+// ===========================================================
+// RENDER HUD
+// ===========================================================
+function renderHUD() {
+  const scoresDiv = document.getElementById('scores');
+  if (!scoresDiv) return;
+  scoresDiv.innerHTML = G.players.map((p, i) => {
+    const active = i === G.currentIdx;
+    return `<div class="score-pill${active ? ' active' : ''}" id="spill-${i}">
+      <span class="pname">${p.name}</span>
+      <span class="pscore">$${p.score.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+
+  const turnEl = document.getElementById('turn-indicator');
+  if (turnEl) turnEl.textContent = G.players[G.currentIdx].name + "'S TURN";
+}
+
+// ===========================================================
+// RENDER BOARD
+// ===========================================================
+function renderBoard() {
+  const boardEl = document.getElementById('board');
+  if (!boardEl) return;
+  boardEl.innerHTML = '';
+
+  const headerRow = document.createElement('div');
+  headerRow.className = 'board-row header-row';
+  CATS.forEach(cat => {
+    const cell = document.createElement('div');
+    cell.className = 'board-cell cat-header';
+    cell.style.setProperty('--cat-color', cat.color || '#FF1493');
+    cell.innerHTML = `<span>${cat.icon || '?'}</span>${cat.name}`;
+    headerRow.appendChild(cell);
+  });
+  boardEl.appendChild(headerRow);
+
+  VALUES.forEach(pts => {
+    const row = document.createElement('div');
+    row.className = 'board-row';
+    CATS.forEach(cat => {
+      const cell = document.createElement('div');
+      const catId = cat.id;
+      const used = G.board[catId]?.[pts];
+      cell.className = 'board-cell q-cell' + (used ? ' used' : '');
+      if (!used) {
+        cell.setAttribute('tabindex', '0');
+        cell.setAttribute('role', 'button');
+        cell.dataset.cat = catId;
+        cell.dataset.value = pts;
+        cell.addEventListener('click', () => selectCell(catId, pts));
+        cell.addEventListener('keydown', e => { if (e.key === 'Enter') selectCell(catId, pts); });
+      }
+      cell.innerHTML = used ? '<span class="q-done">&#10003;</span>' : `<span class="q-pts">$${pts}</span>`;
+      row.appendChild(cell);
+    });
+    boardEl.appendChild(row);
+  });
+}
 
 // ===========================================================
 // CELL SELECTION

@@ -677,23 +677,29 @@ async function loadQuestions(game) {
   try {
     const res = await fetch(`/api/questions/${game}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const categories = await res.json();
+    const questions = await res.json();
 
-    CATS = categories;
+    // Hardcoded Seinfeld categories — API returns flat array, no category field
+    CATS = [
+      { id: 'episodes', name: 'Episodes & Plots',  color: '#E8B44B', icon: '📺', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'chars',    name: 'Characters',         color: '#FFD700', icon: '🧑', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'quotes',  name: 'Famous Quotes',       color: '#FFCC66', icon: '💬', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'guests',  name: 'Guest Stars',         color: '#E8B44B', icon: '🎭', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'nyc',     name: 'New York City',       color: '#FFCC66', icon: '🗽', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'trivia',  name: 'Seinfeld Trivia',     color: '#FFD700', icon: '☕', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+    ];
 
-    // also build TIERS lookup: difficulty -> array of {catId, catName, catIcon, ...q}
+    // Reset TIERS
     Object.keys(TIERS).forEach(k => TIERS[k] = []);
-    for (const cat of CATS) {
-      for (const [ptsStr, qs] of Object.entries(cat.q)) {
-        const pts = parseInt(ptsStr);
-        if (!TIERS[pts]) TIERS[pts] = [];
-        for (const q of qs) {
-          TIERS[pts].push({ catId: cat.id, catName: cat.name, catIcon: cat.icon, catColor: cat.color, ...q });
-        }
-      }
-    }
 
-    if (typeof renderBoard === 'function') renderBoard();
+    // Distribute flat API questions across hardcoded categories (round-robin)
+    questions.forEach((q, i) => {
+      const pts = difficultyToPts[q.difficulty] ?? 200;
+      const cat = CATS[i % CATS.length];
+      const questionObj = { q: q.question, a: q.options, c: q.correct_index ?? 0, catId: cat.id, catName: cat.name, catColor: cat.color, catIcon: cat.icon };
+      TIERS[pts].push(questionObj);
+      if (cat.q[pts]) cat.q[pts].push(questionObj);
+    });
   } catch (err) {
     console.error('loadQuestions failed:', err);
   }

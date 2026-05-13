@@ -732,35 +732,29 @@ async function loadQuestions(game) {
   try {
     const res = await fetch(`/api/questions/${game}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const questions = await res.json();
 
-    // Build TIERS flat arrays keyed by point value
+    // Hardcoded 80s categories — API returns flat array, no category field
+    CATS = [
+      { id: 'movies', name: '80s Movies',     color: '#FF00CC', icon: '🎬', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'music',  name: '80s Music',      color: '#00FFCC', icon: '🎵', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'tv',     name: '80s TV',         color: '#FFAA00', icon: '📺', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'games',  name: 'Video Games',    color: '#AA00FF', icon: '🕹️', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'fads',   name: 'Fads & Fashion', color: '#FFFF00', icon: '🕶️', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+      { id: 'icons',  name: '80s Icons',      color: '#FF4400', icon: '🌟', q: { 200:[], 400:[], 600:[], 800:[], 1000:[] } },
+    ];
+
+    // Reset TIERS
     TIERS = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
 
-    // Also populate CATS (category metadata + questions) from API response
-    CATS.length = 0;
-    for (const cat of data.categories) {
-      CATS.push({
-        id: cat.id,
-        name: cat.name,
-        color: cat.color || '#FF00CC',
-        icon: cat.icon || '❓',
-        q: { 200: [], 400: [], 600: [], 800: [], 1000: [] },
-      });
-    }
-
-    // Distribute questions into TIERS (by difficulty→points) and CATS[cat].q (by points)
-    for (const q of data.questions) {
+    // Distribute flat API questions across hardcoded categories (round-robin)
+    questions.forEach((q, i) => {
       const pts = difficultyToPts[q.difficulty] ?? 200;
-      const cat = CATS.find(c => c.id === q.catId);
-      if (!cat) continue;
-
-      const questionObj = { q: q.question, a: q.answers, c: q.correct ?? 0, catId: q.catId, catName: cat.name, catColor: cat.color, catIcon: cat.icon };
+      const cat = CATS[i % CATS.length];
+      const questionObj = { q: q.question, a: q.options, c: q.correct_index ?? 0, catId: cat.id, catName: cat.name, catColor: cat.color, catIcon: cat.icon };
       TIERS[pts].push(questionObj);
       if (cat.q[pts]) cat.q[pts].push(questionObj);
-    }
-
-    if (typeof buildBoard === 'function') buildBoard();
+    });
   } catch (err) {
     console.error('Failed to load questions:', err);
   }
