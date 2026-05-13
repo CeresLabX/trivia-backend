@@ -677,6 +677,32 @@ const BAD_LINES = [
 ];
 
 // ════════════════════════════════════════════════════════════
+// TIERS — loaded from API
+// ════════════════════════════════════════════════════════════
+let TIERS = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
+const difficultyToPts = { 1: 200, 2: 400, 3: 600, 4: 800, 5: 1000 };
+
+async function loadQuestions(game) {
+  try {
+    const res = await fetch(`/api/questions/${game}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    // data is an array of { question, answer, difficulty } or similar
+    TIERS = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
+    for (const item of data) {
+      const pts = difficultyToPts[item.difficulty];
+      if (pts) TIERS[pts].push(item);
+    }
+  } catch (e) {
+    console.warn('loadQuestions failed, TIERS empty:', e.message);
+  }
+  if (typeof buildBoard === 'function') buildBoard();
+  else if (typeof renderBoard === 'function') renderBoard();
+}
+
+document.addEventListener('DOMContentLoaded', () => loadQuestions('simpsons'));
+
+// ════════════════════════════════════════════════════════════
 // GAME STATE
 // ════════════════════════════════════════════════════════════
 let G = {

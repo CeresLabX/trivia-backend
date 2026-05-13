@@ -844,60 +844,36 @@ let selectedCount = 2;
 // QUESTION TIERS â€” The Office edition (difficulty â†’ point value)
 // 200=easy  400=easy-medium  600=medium  800=hard  1000=expert
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-const TIERS = {
-  200: [
-    { q: 'What is the name of the paper company where the main characters work?', a: ['Dunder Mifflin','Staples','Michael Scott Paper Company','Wernham Hogg'], c: 0, src: 'https://theoffice.fandom.com/wiki/Dunder_Mifflin' },
-    { q: 'What city and state is The Office set in?', a: ['Scranton, Pennsylvania','Albany, New York','Stamford, Connecticut','Utica, New York'], c: 0, src: 'https://theoffice.fandom.com/wiki/Dunder_Mifflin_Scranton' },
-    { q: 'Who is the Regional Manager of the Scranton branch for most of the series?', a: ['Michael Scott','Dwight Schrute','Robert California','Andy Bernard'], c: 0, src: 'https://theoffice.fandom.com/wiki/Michael_Scott' },
-    { q: 'What is the name of the receptionist at Dunder Mifflin Scranton?', a: ['Pam Beesly','Erin Hannon','Kelly Kapoor','Meredith Palmer'], c: 0, src: 'https://theoffice.fandom.com/wiki/Pam_Beesly' },
-    { q: 'What does Dwight Schrute grow on his family farm?', a: ['Beets','Corn','Potatoes','Pumpkins'], c: 0, src: 'https://theoffice.fandom.com/wiki/Schrute_Farms' },
-    { q: "What is Michael Scott's most famous catchphrase?", a: ['"That\'s what she said"','"I declare bankruptcy!"','"Boom! Roasted."','"I am Beyonce, always"'], c: 0, src: 'https://theoffice.fandom.com/wiki/Michael_Scott' },
-    { q: 'Who sits across from Jim at the office?', a: ['Dwight Schrute','Andy Bernard','Ryan Howard','Stanley Hudson'], c: 0, src: 'https://theoffice.fandom.com/wiki/Dwight_Schrute' },
-  ],
-  400: [
-    { q: "What is the name of the bar the office employees frequently visit?", a: ["Poor Richard's","Alfredo's Pizza","Chili's","Dave & Buster's"], c: 0, src: 'https://theoffice.fandom.com/wiki/Poor_Richard%27s' },
-    { q: 'What a cappella group was Andy Bernard a member of at Cornell?', a: ['Here Comes Treble','The Acafellas','The Barden Bellas','The Nard Dogs'], c: 0, src: 'https://theoffice.fandom.com/wiki/Here_Comes_Treble' },
-    { q: 'What is Kevin Malone famous for spilling in the opening of Season 5?', a: ['His Famous Chili','A pot of soup','Coffee','Salad dressing'], c: 0, src: 'https://theoffice.fandom.com/wiki/Kevin%27s_Famous_Chili' },
-    { q: "What is the name of Michael Scott's screenplay / movie?", a: ['Threat Level Midnight','Agent Michael Scarn','The Negotiator','Goldenface'], c: 0, src: 'https://theoffice.fandom.com/wiki/Threat_Level_Midnight' },
-    { q: 'Who started the fire in the office (according to the song)?', a: ['Ryan Howard','Dwight Schrute','Michael Scott','Kevin Malone'], c: 0, src: 'https://theoffice.fandom.com/wiki/The_Fire' },
-    { q: "What is the name of Dwight's family farm?", a: ['Schrute Farms','Schrute Beet Farm','The Schrute Plantation','Schrute Acres'], c: 0, src: 'https://theoffice.fandom.com/wiki/Schrute_Farms' },
-    { q: 'What annual awards ceremony does Michael Scott host at a restaurant?', a: ['The Dundies','The Scranties','The Mifflin Awards','The Golden Tickets'], c: 0, src: 'https://theoffice.fandom.com/wiki/The_Dundies' },
-  ],
-  600: [
-    { q: 'In "The Injury," how does Michael Scott burn his foot?', a: ['On a George Foreman grill','On a space heater','On a hot plate','On a radiator'], c: 0, src: 'https://theoffice.fandom.com/wiki/The_Injury' },
-    { q: "What is the name of Dwight's cousin who lives on the farm?", a: ['Mose','Jeb','Zeke','Fannie'], c: 0, src: 'https://theoffice.fandom.com/wiki/Mose_Schrute' },
-    { q: "What is Creed Bratton's real-life occupation before being an actor?", a: ['Musician (The Grass Roots)','Accountant','Paper salesman','Teacher'], c: 0, src: 'https://theoffice.fandom.com/wiki/Creed_Bratton_(actor)' },
-    { q: 'Which office employee went to art school in New York?', a: ['Oscar Martinez','Ryan Howard','Pam Beesly','Toby Flenderson'], c: 2, src: 'https://theoffice.fandom.com/wiki/Pam_Beesly' },
-    { q: 'What kind of car does Michael Scott drive?', a: ['Chrysler Sebring convertible','Toyota Camry','Ford Taurus','Pontiac Trans Am'], c: 0, src: 'https://theoffice.fandom.com/wiki/Michael_Scott' },
-    { q: 'What reality show does Michael produce his own version of in the woods?', a: ['Survivor Man','The Amazing Race','Fear Factor','Big Brother'], c: 0, src: 'https://theoffice.fandom.com/wiki/Survivorman' },
-    { q: "What college did Ryan Howard attend for his MBA?", a: ['The University of Scranton','Wharton','Cornell','Penn State'], c: 0, src: 'https://theoffice.fandom.com/wiki/Ryan_Howard' },
-    { q: 'In "Casino Night," where was the casino night event held?', a: ['The warehouse','The parking lot','The conference room','A local hotel'], c: 0, src: 'https://theoffice.fandom.com/wiki/Casino_Night' },
-    { q: "What is Stanley Hudson's favorite day at the office?", a: ['Pretzel Day','Pizza Day','Hawaiian Shirt Day','Last Day of the Year'], c: 0, src: 'https://theoffice.fandom.com/wiki/Stanley_Hudson' },
-    { q: 'What type of animal does Dwight deal with that gets loose in the office?', a: ['A bat','A raccoon','A cat','A turtle'], c: 0, src: 'https://theoffice.fandom.com/wiki/Business_School' },
-    { q: "What is the name of Michael's secret agent movie character?", a: ['Michael Scarn','Prison Mike','Caleb Crawdad','Date Mike'], c: 0, src: 'https://theoffice.fandom.com/wiki/Threat_Level_Midnight:_The_Movie' },
-    { q: 'What company does Ryan start that ultimately fails?', a: ['WUPHF.com','Sabre','Athlead','The Michael Scott Paper Company'], c: 0, src: 'https://theoffice.fandom.com/wiki/WUPHF.com_(website)' },
-  ],
-  800: [
-    { q: 'What is the name of the HR representative Michael despises?', a: ['Toby Flenderson','Holly Flax','David Wallace','Jan Levinson'], c: 0, src: 'https://theoffice.fandom.com/wiki/Toby_Flenderson' },
-    { q: "What does Michael declare loudly to 'make it official' in the Bankruptcy episode?", a: ['"I DECLARE BANKRUPTCY!"','"I\'M BANKRUPT!"','"BANKRUPTCY IS HEREBY DECLARED!"','"WE ARE BROKE!"'], c: 0, src: 'https://theoffice.fandom.com/wiki/Money' },
-    { q: 'In "Stress Relief," what does Dwight do that causes Stanley to have a heart attack?', a: ['He starts a fake fire','He releases a swarm of bees','He sets off fireworks','He fires a gun'], c: 0, src: 'https://theoffice.fandom.com/wiki/Stress_Relief' },
-    { q: 'What movie does Michael watch obsessively?', a: ['Varsity Blues','Die Hard','Braveheart','The Breakfast Club'], c: 0, src: 'https://theoffice.fandom.com/wiki/Michael_Scott' },
-    { q: "What is Pam's painting of that hangs in the office after the art show?", a: ['The Dunder Mifflin office building','A bowl of fruit','Her house','A sunset'], c: 0, src: 'https://theoffice.fandom.com/wiki/Business_School' },
-    { q: 'What does Michael hit with his car in "Fun Run"?', a: ['Meredith Palmer','A mailbox',"Stanley's car",'A fire hydrant'], c: 0, src: 'https://theoffice.fandom.com/wiki/Fun_Run' },
-    { q: 'What band does Kevin play drums in?', a: ['Scrantonicity','The Scranton Stranglers','Dunder Mifflinaires','Kevin and the Zits'], c: 0, src: 'https://theoffice.fandom.com/wiki/Kevin_Malone' },
-    { q: "What is Robert California's real name revealed at the end?", a: ['Bob Kazamakis','Robert California','Raymond Reddington','Robert Lipton'], c: 0, src: 'https://theoffice.fandom.com/wiki/Robert_California' },
-    { q: "Who buys the building that Dunder Mifflin's office is in?", a: ['Dwight Schrute','Robert California','David Wallace','Jo Bennett'], c: 0, src: 'https://theoffice.fandom.com/wiki/Dwight_Schrute' },
-    { q: 'What does Dwight do during the CPR training with the practice dummy?', a: ['He cuts off its face','He uses a defibrillator','He pours water on it','He performs a tracheotomy'], c: 0, src: 'https://theoffice.fandom.com/wiki/Stress_Relief' },
-  ],
-  1000: [
-    { q: "In 'Niagara,' what happens with Pam's veil before the wedding?", a: ['She tears it on purpose','It gets caught on a candelabra','Jim steps on it','It blows away in the wind'], c: 0, src: 'https://theoffice.fandom.com/wiki/Niagara' },
-    { q: 'What is the full name of the Scranton Strangler that Toby served on the jury for?', a: ['George Howard Skub','Frank Didit','Robert Lipton','Troy Anderson'], c: 0, src: 'https://theoffice.fandom.com/wiki/Scranton_Strangler' },
-    { q: "What flavor of cake does Michael request for his 15th anniversary party?", a: ['Mint chocolate chip','Ice cream cake','Vanilla','Marble'], c: 1, src: 'https://theoffice.fandom.com/wiki/Michael_Scott' },
-    { q: 'In "The Surplus," what does Michael compare his budget surplus decision to?', a: ["Sophie's Choice",'The Trolley Problem',"Schindler's List",'The Hunger Games'], c: 0, src: 'https://theoffice.fandom.com/wiki/The_Surplus' },
-    { q: "What personalized license plate does Michael have?", a: ['WLHUNG','THTS WH','SCR4NTN','MSCOTT'], c: 0, src: 'https://theoffice.fandom.com/wiki/Michael_Scott' },
-    { q: "How many Schrute Bucks equal one extra five minutes of lunch?", a: ['One million','One thousand','Ten thousand','One hundred'], c: 0, src: 'https://theoffice.fandom.com/wiki/The_Job' },
-  ],
-};
+let TIERS = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
+
+function difficultyToPts(d) {
+  const m = { 1: 200, 2: 400, 3: 600, 4: 800, 5: 1000 };
+  return m[d] ?? 200;
+}
+
+async function loadQuestions(game) {
+  try {
+    const res = await fetch(`/api/questions/${game}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const questions = await res.json();
+    TIERS = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
+    for (const q of questions) {
+      const pts = difficultyToPts(q.difficulty);
+      TIERS[pts].push({
+        q: q.question,
+        a: q.options,
+        c: q.correct_index,
+        src: q.source || '',
+      });
+    }
+    if (typeof buildBoard === 'function') buildBoard();
+  } catch (e) {
+    console.warn('Failed to load questions from API, using empty tiers:', e);
+    TIERS = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => loadQuestions('office'));
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // STARS (ambient background particles)

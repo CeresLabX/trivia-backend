@@ -666,236 +666,38 @@
 // ════════════════════════════════════════════════════════════
 const VALUES = [200, 400, 600, 800, 1000];
 
-const CATS = [
-  {
-    id: 'gang', name: 'The Gang', color: '#E8B44B', icon: '👥',
-    q: {
-      200: [
-        { q: "What is Kramer's first name, revealed in the Season 6 episode 'The Switch'?",
-          a: ["Cosmo","Carl","Conrad","Chris"], c: 0 },
-        { q: "What is Elaine's last name?",
-          a: ["Benes","Barnes","Bennett","Baxter"], c: 0 },
-        { q: "What fake occupation does George most often claim to impress women, using 'Art Vandelay' as his alias?",
-          a: ["Architect","Marine biologist","Importer/exporter","Lawyer"], c: 0 },
-      ],
-      400: [
-        { q: "What MLB team does George work for as assistant to the traveling secretary?",
-          a: ["New York Yankees","New York Mets","Boston Red Sox","LA Dodgers"], c: 0 },
-        { q: "What is the name of the fictional company George claims to run under his Art Vandelay alias?",
-          a: ["Vandelay Industries","Vandelay Enterprises","Del Boca Vista Corp","Tuttle Industries"], c: 0 },
-        { q: "Seinfeld co-creator Larry David based George Costanza largely on whom?",
-          a: ["Himself","Jerry Seinfeld","His college roommate","His first boss"], c: 0 },
-        { q: "What is the last name of Jerry's nemesis neighbor across the hall?",
-          a: ["Newman","Neiderman","Norton","Nickson"], c: 0 },
-      ],
-      600: [
-        { q: "What publishing company does Elaine work for before joining J. Peterman?",
-          a: ["Pendant Publishing","Prestige Press","Pinnacle Books","Pioneer Publishing"], c: 0 },
-        { q: "What product does George's fictional Vandelay Industries import and export?",
-          a: ["Latex","Steel","Chemicals","Petroleum"], c: 0 },
-        { q: "In 'The Bizarro Jerry,' what is the name of the Bizarro Jerry — Elaine's new, thoughtful friend who is Jerry's exact opposite?",
-          a: ["Kevin","Keith","Kenny","Karl"], c: 0 },
-      ],
-      800: [
-        { q: "Kramer's character was based on a real person — Larry David's former neighbor. What was that person's name?",
-          a: ["Kenny Kramer","Cosmo Rogers","Carl Kramer","Billy Wayne"], c: 0 },
-        { q: "In the series finale, the gang is convicted in Latham, Massachusetts under what law?",
-          a: ["A Good Samaritan law requiring bystanders to help crime victims","A vagrancy ordinance","A public nuisance statute","A local anti-loitering code"], c: 0 },
-      ],
-      1000: [
-        { q: "In 'The Opposite,' what does George say when he introduces himself to a beautiful woman at the diner — the honest self-description that somehow works perfectly?",
-          a: ["'My name is George. I'm unemployed and I live with my parents.'","'Hi — I have no job and no prospects but I find you attractive.'","'I'm George Costanza, a man of no consequence whatsoever.'","'I'm unemployed and desperate — care to join me for lunch?'"], c: 0 },
-      ],
+let CATS = [];
+let TIERS = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
+const difficultyToPts = {1:200, 2:400, 3:600, 4:800, 5:1000};
+
+// ════════════════════════════════════════════════════════════
+// API LOADER
+// ════════════════════════════════════════════════════════════
+async function loadQuestions(game) {
+  try {
+    const res = await fetch(`/api/questions/${game}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const categories = await res.json();
+
+    CATS = categories;
+
+    // also build TIERS lookup: difficulty -> array of {catId, catName, catIcon, ...q}
+    Object.keys(TIERS).forEach(k => TIERS[k] = []);
+    for (const cat of CATS) {
+      for (const [ptsStr, qs] of Object.entries(cat.q)) {
+        const pts = parseInt(ptsStr);
+        if (!TIERS[pts]) TIERS[pts] = [];
+        for (const q of qs) {
+          TIERS[pts].push({ catId: cat.id, catName: cat.name, catIcon: cat.icon, catColor: cat.color, ...q });
+        }
+      }
     }
-  },
-  {
-    id: 'catchphrases', name: 'Catchphrases', color: '#6699FF', icon: '💬',
-    q: {
-      200: [
-        { q: "Complete the Soup Nazi's famous dismissal when a customer breaks his strict ordering rules: 'No ___ for you!'",
-          a: ["Soup","Food","Service","Bread"], c: 0 },
-        { q: "What single word does Jerry exclaim — with disgust or exasperation — whenever his neighbor's name is spoken?",
-          a: ["Newman!","Neiderman!","No!","Never!"], c: 0 },
-      ],
-      400: [
-        { q: "What phrase do Jerry and George repeat throughout 'The Outing' to clarify they have no objection to being perceived as a couple?",
-          a: ["'Not that there's anything wrong with that'","'Whatever you're into'","'We're very open-minded'","'I'm comfortable with it'"], c: 0 },
-        { q: "What three-word filler phrase does Elaine use in 'The Yada Yada' to skip over the most important parts of a story?",
-          a: ["Yada yada yada","Blah blah blah","Et cetera et cetera","So on so forth"], c: 0 },
-        { q: "What does Frank Costanza shout as his personal stress-relief mantra in 'The Serenity Now'?",
-          a: ["SERENITY NOW!","PEACE NOW!","CALM DOWN!","TRANQUILITY NOW!"], c: 0 },
-      ],
-      600: [
-        { q: "In 'The Puffy Shirt,' what does Kramer's 'low-talker' girlfriend get Jerry to unknowingly agree to wear on national television?",
-          a: ["A puffy pirate shirt","A ruffled tuxedo","A sequined jacket","A Victorian blouse"], c: 0 },
-        { q: "What is George's signature response after being caught acting badly, in which he questions whether anyone told him such behavior was unacceptable?",
-          a: ["'Was that wrong?'","'I didn't know that was a thing'","'Nobody told me'","'In my defense...'"], c: 0 },
-        { q: "What is Kramer's signature one-word exclamation — a casual cowboy-style affirmative he uses throughout the series?",
-          a: ["Giddy up!","Yippee!","Hot dog!","Let's ride!"], c: 0 },
-      ],
-      800: [
-        { q: "In 'The Hamptons,' what term does George coin to explain why cold ocean water made him appear physically smaller than usual?",
-          a: ["Shrinkage","The Hampton Effect","Retraction","Cold withdrawal"], c: 0 },
-        { q: "In an acting class, Kramer delivers what line — as his character's only interpretation — that becomes one of the show's most quoted moments?",
-          a: ["'These pretzels are making me thirsty'","'Giddy up, cowboy!'","'I'm out there, Jerry, and I'm lovin' every minute of it!'","'It's go time'"], c: 0 },
-      ],
-      1000: [
-        { q: "In 'The Conversion,' what religion does George convert to in order to continue dating a woman named Sasha?",
-          a: ["Latvian Orthodox","Russian Orthodox","Lithuanian Catholic","Serbian Orthodox"], c: 0 },
-      ],
-    }
-  },
-  {
-    id: 'episodes', name: 'Classic Episodes', color: '#66CC66', icon: '📺',
-    q: {
-      200: [
-        { q: "In 'The Contest,' what are the four friends competing to do the longest — a competition that cannot be named explicitly on network TV?",
-          a: ["Abstain from self-gratification","Not eat junk food","Not watch television","Go without coffee"], c: 0 },
-        { q: "In 'The Soup Nazi,' what is the cardinal rule of ordering that, if broken, results in an immediate ban?",
-          a: ["Move to the side, state your order precisely, have your money ready, and do not chat","Stand in silence, point at your selection, and leave immediately","Bow to the chef, recite the daily special, and say thank you","Order in advance, pay upfront, and request no substitutions"], c: 0 },
-      ],
-      400: [
-        { q: "In 'The Chinese Restaurant,' how does the episode end for Jerry, Elaine, and George after waiting the entire episode for a table?",
-          a: ["They leave without ever being seated","They finally get seated just as the episode ends","George bribes the maître d' to get them a table","Kramer arrives and charms them into a table immediately"], c: 0 },
-        { q: "In 'The Parking Garage,' the gang spends the entire episode doing what in a New Jersey mall?",
-          a: ["Searching for their car","Looking for a parking space","Waiting for the parking attendant","Trying to pay a jammed parking meter"], c: 0 },
-        { q: "In 'The Boyfriend,' Jerry becomes starstruck after meeting which famous New York Mets first baseman?",
-          a: ["Keith Hernandez","Mike Piazza","Tom Seaver","Gary Carter"], c: 0 },
-        { q: "In 'The Pitch,' Jerry and George pitch their 'show about nothing' to which television network?",
-          a: ["NBC","ABC","CBS","Fox"], c: 0 },
-      ],
-      600: [
-        { q: "In 'The Junior Mint,' what does Kramer accidentally drop into a patient's open chest cavity during surgery — an act that may have actually saved his life?",
-          a: ["A Junior Mint candy","A Tic Tac","A breath mint","A piece of gum"], c: 0 },
-        { q: "In 'The Marine Biologist,' George is forced to actually perform as a marine biologist on a beach. What object does he dramatically pull from a whale's blowhole?",
-          a: ["A Titleist golf ball Kramer had hit into the ocean","A piece of plastic trash","A rubber stopper","A fishing lure"], c: 0 },
-        { q: "In 'The Bizarro Jerry,' what are the names of Elaine's new trio of friends who mirror the exact opposite personalities of Jerry, George, and Kramer?",
-          a: ["Kevin, Gene, and Feldman","Brian, Tom, and Alan","Mike, Phil, and Steve","Doug, Ed, and Phil"], c: 0 },
-      ],
-      800: [
-        { q: "In 'The Invitations,' how does George's fiancée Susan Ross die?",
-          a: ["Licking toxic glue on cheap wedding invitation envelopes George chose to save money","In a car accident on the way to the venue","From a rare illness contracted at the engagement party","Food poisoning at the rehearsal dinner"], c: 0 },
-        { q: "The episode 'The Betrayal' told its story in an unusual format inspired by a Harold Pinter play. What was this format?",
-          a: ["Reverse chronological order","As an extended dream sequence","From four different character perspectives simultaneously","As a series of unreliable flashbacks"], c: 0 },
-      ],
-      1000: [
-        { q: "In 'The Contest,' who won the competition — and in what order did the other three drop out?",
-          a: ["Jerry won; Kramer dropped out first (nude neighbor), then George (with the nurse), then Elaine (thinking of JFK Jr.)","George won; Kramer dropped out first, then Elaine, then Jerry","Elaine won; George dropped out first, then Kramer, then Jerry","The contest ended in a four-way tie after an interruption"], c: 0 },
-      ],
-    }
-  },
-  {
-    id: 'locations', name: 'NYC & Locations', color: '#FF9900', icon: '🗽',
-    q: {
-      200: [
-        { q: "What is the name of the coffee shop where Jerry and the gang regularly meet for their conversations?",
-          a: ["Monk's Café","Tom's Diner","Central Perk","Joe's Coffee"], c: 0 },
-        { q: "In what New York City neighborhood does Jerry Seinfeld live?",
-          a: ["Upper West Side","Upper East Side","Greenwich Village","Midtown"], c: 0 },
-      ],
-      400: [
-        { q: "Monk's Café is based on a real New York City diner. What is its actual name?",
-          a: ["Tom's Restaurant","Ellen's Stardust Diner","Café Lalo","The Lexington Candy Shop"], c: 0 },
-        { q: "What is the street address of Jerry's apartment building shown in the series?",
-          a: ["129 West 81st Street","2880 Broadway","100 West 72nd Street","55 Central Park West"], c: 0 },
-        { q: "Frank and Estelle Costanza retire to what community in Boca Raton, Florida — a name George absolutely dreads?",
-          a: ["Del Boca Vista","Boca Breeze","Sunset Manor","Palm Vista Estates"], c: 0 },
-      ],
-      600: [
-        { q: "What is the real name of the New York City soup restaurant that inspired the infamous Soup Nazi episode?",
-          a: ["Soup Kitchen International","Ali's Alley Soups","The Soup Emporium","Manhattan Soup Company"], c: 0 },
-        { q: "What apartment number does Jerry live in?",
-          a: ["5A","3A","4A","5B"], c: 0 },
-        { q: "In 'The Puerto Rican Day,' the gang gets stuck in gridlock during what annual New York City event?",
-          a: ["The Puerto Rican Day Parade","The Macy's Thanksgiving Day Parade","The NYC Marathon","The St. Patrick's Day Parade"], c: 0 },
-      ],
-      800: [
-        { q: "In 'The Puerto Rican Day,' Kramer accidentally sets fire to and damages what, causing tremendous controversy when the episode first aired?",
-          a: ["A Puerto Rican flag","A hot dog cart","A taxi cab","A newspaper stand"], c: 0 },
-        { q: "Kramer pitches a unique coffee table book idea to Elaine's boss Mr. Lippman at Pendant Publishing. What is its brilliantly self-referential concept?",
-          a: ["A coffee table book about coffee tables — which folds out into a tiny coffee table","A photo book of New York diners","A guide to Upper West Side apartments","A collection of overheard New York conversations"], c: 0 },
-      ],
-      1000: [
-        { q: "In 'The Parking Garage,' beyond searching for the car, what other urgent physical need does George desperately need to address for most of the episode?",
-          a: ["He needs to use the bathroom","He needs to find a phone to call his mother","He is carrying a heavy air conditioner and needs a cart","He left his medication in the car"], c: 0 },
-      ],
-    }
-  },
-  {
-    id: 'costanzas', name: 'The Costanzas', color: '#FF6699', icon: '😤',
-    q: {
-      200: [
-        { q: "What are the names of George's parents?",
-          a: ["Frank and Estelle","Fred and Edith","Frank and Emma","George Sr. and Estelle"], c: 0 },
-        { q: "What holiday does Frank Costanza invent as an alternative to Christmas, featuring a plain aluminum pole?",
-          a: ["Festivus","Serenity Day","Festivale","Frankmas"], c: 0 },
-      ],
-      400: [
-        { q: "What are the three main traditions of Festivus as described by Frank Costanza?",
-          a: ["The Festivus Pole, the Airing of Grievances, and the Feats of Strength","The Festivus Feast, a Gift Exchange, and a Celebratory Dance","The Pole, the Prayers, and the Parade","Decorating, Singing, and Gifting"], c: 0 },
-        { q: "What material is the Festivus Pole made of — chosen specifically because Frank finds tinsel distracting?",
-          a: ["Aluminum","Steel","Wood","Plastic"], c: 0 },
-        { q: "In 'The Revenge,' after George impulsively quits his job at Pinnacle, how does he try to resolve his mistake?",
-          a: ["He simply shows up for work the next day as if nothing happened","He calls his boss and apologizes, begging to be rehired","He sues for wrongful termination","He pretends he was on a spontaneous vacation"], c: 0 },
-      ],
-      600: [
-        { q: "In 'The Opposite,' what philosophical shift does George make that transforms every aspect of his luck?",
-          a: ["He decides to do the exact opposite of every instinct he has","He decides to be brutally honest at all times","He stops caring what other people think","He fully embraces selfishness as a life strategy"], c: 0 },
-        { q: "In 'The Fusilli Jerry,' Frank Costanza is injured when he falls on what object Kramer has created as an art piece?",
-          a: ["A Fusilli pasta sculpture shaped like Jerry Seinfeld","A Rigatoni portrait of George","A Penne pasta landscape","A Ziti figure of Kramer himself"], c: 0 },
-        { q: "In 'The Implant,' George is confronted at a funeral by a man named Timmy who accuses him of committing what act — a term the episode helped popularize?",
-          a: ["Double-dipping a chip","Stealing food from a buffet","Fake-crying at the funeral","Taking a doggy bag at a memorial luncheon"], c: 0 },
-      ],
-      800: [
-        { q: "In 'The Calzone,' George brings which food item to Mr. Steinbrenner that causes Steinbrenner to become completely obsessed with getting more?",
-          a: ["An eggplant calzone from Paisano's","A knish from a street cart","A pastrami sandwich from Monk's","A chicken parm sub from a local deli"], c: 0 },
-        { q: "In 'The Calzone,' George's calzone scheme ultimately collapses when he is banned from the restaurant. Why is he banned?",
-          a: ["He is caught stealing change from the tip jar after planting a bill to get change back","He argues with the owner about the price","He tries to sneak a second calzone without paying","He is caught adding food from home to a takeout order"], c: 0 },
-      ],
-      1000: [
-        { q: "During the Feats of Strength — the final Festivus tradition — what must happen before Festivus can be officially declared over?",
-          a: ["The head of the household must be pinned","The aluminum pole must be put away","The Airing of Grievances must conclude with a hug","The guests must all agree Festivus was a success"], c: 0 },
-      ],
-    }
-  },
-  {
-    id: 'universe', name: 'Seinfeld Universe', color: '#CC66CC', icon: '🌐',
-    q: {
-      200: [
-        { q: "In what year did Seinfeld premiere on NBC, originally titled 'The Seinfeld Chronicles'?",
-          a: ["1989","1990","1991","1988"], c: 0 },
-        { q: "How many seasons did Seinfeld run before ending in 1998?",
-          a: ["9","8","10","7"], c: 0 },
-      ],
-      400: [
-        { q: "Seinfeld was created by Jerry Seinfeld and which co-creator, who left after Season 7?",
-          a: ["Larry David","Michael Richards","Jason Alexander","Jerry Stiller"], c: 0 },
-        { q: "What was the title of the very first Seinfeld episode that aired as a pilot in 1989?",
-          a: ["The Seinfeld Chronicles","The Pilot","A Show About Nothing","Stand-Up"], c: 0 },
-        { q: "Which actress plays Elaine Benes throughout the entire run of the series?",
-          a: ["Julia Louis-Dreyfus","Helen Hunt","Patricia Heaton","Lisa Kudrow"], c: 0 },
-      ],
-      600: [
-        { q: "What famous phrase — used to describe the show's premise — became a cultural touchstone for a certain type of sitcom?",
-          a: ["'A show about nothing'","'The comedian's life'","'Four friends in New York'","'Observational comedy'"], c: 0 },
-        { q: "Which episode is consistently ranked by critics as the greatest Seinfeld episode ever — and one of the best TV episodes of all time?",
-          a: ["The Contest","The Chinese Restaurant","The Soup Nazi","The Marine Biologist"], c: 0 },
-        { q: "Which actor plays George Costanza throughout the series?",
-          a: ["Jason Alexander","Jerry Stiller","Wayne Knight","Michael Richards"], c: 0 },
-      ],
-      800: [
-        { q: "In the series finale, many past characters return to testify against the gang. Who plays the prosecutor at their trial in Latham, Massachusetts?",
-          a: ["A fictional district attorney named Hoyt","Jerry Seinfeld himself in a cameo","Larry David's stand-in","George Steinbrenner's lawyer"], c: 0 },
-        { q: "The 'The Contest' episode won an Emmy for Outstanding Writing. Writer Larry David submitted it for the award without ever being allowed to state what the contest was actually about — so what did he write in the submission?",
-          a: ["He described it as a contest about 'personal willpower and self-discipline'","He listed it as a contest about 'dietary restraint'","He simply left the category blank","He described it as 'a bet involving self-control'"], c: 0 },
-      ],
-      1000: [
-        { q: "Seinfeld famously broke the fourth wall of sitcom convention by refusing to use which storytelling device that nearly every other sitcom of its era relied on?",
-          a: ["Hugging and learning — characters never meaningfully grew or learned lessons","A laugh track in the traditional sense","A studio audience for filming","Recurring guest characters"], c: 0 },
-      ],
-    }
+
+    if (typeof renderBoard === 'function') renderBoard();
+  } catch (err) {
+    console.error('loadQuestions failed:', err);
   }
-];
+}
 
 const OK_LINES = [
   "Very good. Very good.",
@@ -1999,6 +1801,7 @@ function updateLeaderboard(sortedPlayers) {
 // ════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => loadQuestions('seinfeld'));
 buildPlayerInputs();
 
 // Block Enter inside question overlay unless result is showing

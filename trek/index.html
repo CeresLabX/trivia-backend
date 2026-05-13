@@ -725,47 +725,33 @@
 // ════════════════════════════════════════════════════════════
 const VALUES = [200, 400, 600, 800, 1000];
 
-const Q_BY_TIER = {
-  200:  [],
-  400:  [
-        { q: 'Why did Riker accept the assignment of serving aboard a Klingon vessel in "A Matter of Honor"?', a: ['Worf challenged him to accept', 'No Starfleet officer had ever done it', 'Starfleet ordered it', 'To investigate a security breach'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/A_Matter_Of_Honor_%28episode%29' },
-        { q: 'In "The Measure of a Man," what did Data do in order to keep from being assigned to Commander Maddox, and being taken apart?', a: ['He resigned from Starfleet', 'He stole a shuttlecraft and went to Drema IV', 'He deactivated himself', 'He requested asylum on Starbase 173'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29' },
-        { q: 'In "Pen Pals," what was Captain Picard going to indulge in while on the Holodeck at the beginning of the episode?', a: ['A mystery', 'Horseback riding', 'Solving an archaeological puzzle', 'Fencing'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Equestrian_Adventure' },
-        { q: 'Who performed the wedding ceremony for Keiko and Miles O\'Brien?', a: ['Jean-Luc Picard', 'Will Riker', 'Data', 'Guinan'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29' },
-        { q: 'In "The Measure of a Man," which of the following did NOT participate in the poker game in the beginning of the episode?', a: ['Kate Pulaski', 'Deanna Troi', 'Miles O\'Brien', 'Worf'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29' },
-        { q: 'When Jean-Luc Picard was reassigned to a mission behind Cardassian lines, who replaced him as captain?', a: ['Edward Jellico', 'William Riker', 'Tryla Scott', 'Morgan Bateson'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Chain_Of_Command%2C_Part_I_%28episode%29' },
-        { q: 'Which of these was not a drink offered to Admiral Nechayev by Captain Picard?', a: ['Coffee', 'Synthehol', 'Tea', 'Aldebaran whiskey'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Journey%27s_End_%28episode%29' }
-      ],
-  600:  [
-        { q: 'Who accompanied Captain Picard onto the Holodeck in the episode "Pen Pals"?', a: ['Lt. Commander Data', 'Guinan', 'Counselor Troi', 'Lieutenant Worf'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Pen_Pals_%28episode%29' },
-        { q: 'As learned in "Loud as a Whisper," before Mediator Rivas, there was no word for what in the Klingon vocabulary?', a: ['Peacemaker', 'Friend', 'Negotiation', 'Diplomat'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29' },
-        { q: 'Which of the following groups comprised the Away Team to the planet Ramatis III in "Loud as a Whisper"?', a: ['Picard, Data, Pulaski', 'Riker, Worf, Data', 'Picard, Worf, Troi', 'Picard, Data, Worf'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29' },
-        { q: 'Which of these is a measuring unit for a starship\'s structural integrity field?', a: ['Kilobyte', 'Kilodyne', 'Kilogram', 'Kiloparsec'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Dyne' },
-        { q: 'In what division at the Daystrom Institute does Commander Bruce Maddox serve?', a: ['Cybernetics', 'Hydroponics', 'Audioanimatronics', 'Astrometrics'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Bruce_Maddox' },
-        { q: 'When Keiko married Miles O\'Brien, who was the "father" of the bride?', a: ['Will Riker', 'Jean-Luc Picard', 'Data', 'Worf'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29' },
-        { q: 'Who did Keiko ask to inform Miles O\'Brien that she wanted to cancel their wedding?', a: ['Guinan', 'Data', 'Deanna Troi', 'Dr. Crusher'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29' },
-        { q: 'Give the name of the old friend Picard ran into on Starbase 173, who also had prosecuted him in the Stargazer Court martial?', a: ['Admiral Gregory Quinn', 'Captain Tryla Scott', 'Captain Phillipa Louvois', 'Judge Advocate General Nora Satie'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Phillipa_Louvois' },
-        { q: 'In "Contagion," Captain Picard took the U.S.S. Enterprise into the Neutral Zone to answer an SOS from which ship?', a: ['U.S.S. Victory', 'U.S.S. Yamato', 'U.S.S. Rio Grande', 'U.S.S. Hathaway'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Contagion_%28episode%29' },
-        { q: 'Name the U.S.S. Enterprise sister ship, which exploded in the Neutral Zone, due to malfunctions, in "Contagion."', a: ['U.S.S. Galaxy', 'U.S.S. Endeavor', 'U.S.S. Yamato', 'U.S.S. Odyssey'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/USS_Yamato' },
-        { q: 'Which admiral reassigned Captain Picard to a secret mission in Cardassian territory?', a: ['Admiral Alynna Nechayev', 'Admiral J.P. Hanson', 'Admiral Norah Satie', 'Admiral Gregory Quinn'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Alynna_Nechayev' },
-        { q: 'Who is the captain of the U.S.S. Cairo?', a: ['Captain Robert DeSoto', 'Captain Walker Keel', 'Captain Edward Jellico', 'Captain Benjamin Maxwell'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Edward_Jellico' }
-      ],
-  800:  [
-        { q: 'What kind of vessel is the U.S.S. Lantree?', a: ['A Constellation class starship', 'A Class VI Federation supply ship', 'A Galaxy class starship', 'An Oberth class science vessel'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/USS_Lantree' },
-        { q: 'In "Unnatural Selection," who was Captain of the U.S.S. Lantree?', a: ['Captain Dathon', 'Captain Stephens', 'Captain Telaka', 'Captain Donald Varley'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/L._Isao_Telaka' },
-        { q: 'In "Pen Pals," what was the cause of the destruction of the fifth planet in the Selcundi Drema System?', a: ['An imploding nebula', 'Geological instability', 'A black hole', 'Solar flare activity'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/Pen_Pals_%28episode%29' },
-        { q: 'Much of Riker\'s decision to accept command of the U.S.S. Aries would depend on what?', a: ['How complete the briefing of his mission is', 'What officers from the U.S.S. Enterprise he could take with him', 'If Picard would stay on the U.S.S. Enterprise or not', 'Whether the Aries had a cloaking device'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/The_Icarus_Factor_%28episode%29' },
-        { q: 'Who was the civilian advisor of the strategic attaches in "The Icarus Factor"?', a: ['Kyle Riker', 'Ian Troi', 'Devinoni Ral', 'Sergey Rozhenko'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Kyle_Riker' },
-        { q: 'In "Loud as a Whisper," who met the Away Team when it beamed down to the planet Ramatis III?', a: ['The Prime Minister', 'Mediator Rivas', 'No one met the Away Team', 'A delegation of Chorus interpreters'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29' },
-        { q: 'Captain Picard offered to take Commander Riker for a horseback ride in the Holodeck along what Earth river?', a: ['The Kabul River', 'The Yangtse Kiang River', 'The Rio Grande River', 'The Ganges River'], c: 0, src: 'https://memory-alpha.fandom.com/wiki/Kabul_River' },
-        { q: 'On what starship did Captain Picard attempt to make preliminary overtures for a truce to the Cardassians?', a: ['U.S.S. Enterprise', 'U.S.S. Stargazer', 'U.S.S. Rutledge', 'U.S.S. Phoenix'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/USS_Stargazer_%28NCC-2893%29' },
-        { q: 'In "The Royale," the U.S.S. Enterprise beamed aboard a piece of debris that had what acronym on it?', a: ['UNCLE', 'IML-1', 'NASA', 'NACA'], c: 2, src: 'https://memory-alpha.fandom.com/wiki/National_Aeronautics_and_Space_Administration' },
-        { q: 'What starship brought Admiral Alynna Nechayev to the U.S.S. Enterprise?', a: ['U.S.S. Wellington', 'U.S.S. Cairo', 'U.S.S. Hood', 'U.S.S. Melbourne'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/USS_Cairo' }
-      ],
-  1000: [
-        { q: 'In "The Measure of a Man," Data discovered that Commander Maddox had not yet determined how the electron resistance across what was to be resolved?', a: ['Positronic matrices', 'Neural filaments', 'Positronic interference', 'Isolinear pathways'], c: 1, src: 'https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29' }
-      ]
-};
+// Q_BY_TIER starts empty; populated by loadQuestions() from the API
+const Q_BY_TIER = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
+const difficultyToPts = { 1: 200, 2: 400, 3: 600, 4: 800, 5: 1000 };
+
+async function loadQuestions(game) {
+  try {
+    const res = await fetch(`/api/questions/${game}`);
+    const questions = await res.json();
+
+    Q_BY_TIER = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
+    questions.forEach(q => {
+      const pts = difficultyToPts[q.difficulty] || 400;
+      Q_BY_TIER[pts].push({
+        q: q.question,
+        a: q.options,
+        c: q.correct_index,
+        src: q.source || ''
+      });
+    });
+
+    if (typeof renderBoard === 'function') renderBoard();
+  } catch (err) {
+    console.error('Failed to load questions from API:', err);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => loadQuestions('trek'));
 
 const CATS = [
   { id: 'crew', name: 'Crew & Characters', color: '#FF9900', icon: '👤' },
@@ -807,56 +793,6 @@ let G = {
 };
 let selectedCount = 2;
 
-// ════════════════════════════════════════════════════════════
-// QUESTION TIERS — from Trek_Q.json (difficulty → point value)
-// 200=diff1  400=diff2  600=diff3  800=diff4  1000=diff5
-// Note: no difficulty-1 questions in current set; 200-pt cells
-//       fall back to the built-in CATS questions.
-// ════════════════════════════════════════════════════════════
-const TIERS = {
-  200: [], // no difficulty-1 questions in current set
-  400: [
-    { q: `Why did Riker accept the assignment of serving aboard a Klingon vessel in "A Matter of Honor"?`, a: ["Worf challenged him to accept","No Starfleet officer had ever done it","Starfleet ordered it","To investigate a security breach"], c: 1, src: "https://memory-alpha.fandom.com/wiki/A_Matter_Of_Honor_%28episode%29" },
-    { q: `In "The Measure of a Man," what did Data do in order to keep from being assigned to Commander Maddox, and being taken apart?`, a: ["He resigned from Starfleet","He stole a shuttlecraft and went to Drema IV","He deactivated himself","He requested asylum on Starbase 173"], c: 0, src: "https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29" },
-    { q: `In "Pen Pals," what was Captain Picard going to indulge in while on the Holodeck at the beginning of the episode?`, a: ["A mystery","Horseback riding","Solving an archaeological puzzle","Fencing"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Equestrian_Adventure" },
-    { q: "Who performed the wedding ceremony for Keiko and Miles O'Brien?", a: ["Jean-Luc Picard","Will Riker","Data","Guinan"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29" },
-    { q: `In "The Measure of a Man," which of the following did NOT participate in the poker game in the beginning of the episode?`, a: ["Kate Pulaski","Deanna Troi","Miles O'Brien","Worf"], c: 1, src: "https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29" },
-    { q: "When Jean-Luc Picard was reassigned to a mission behind Cardassian lines, who replaced him as captain?", a: ["Edward Jellico","William Riker","Tryla Scott","Morgan Bateson"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Chain_Of_Command%2C_Part_I_%28episode%29" },
-    { q: "Which of these was not a drink offered to Admiral Nechayev by Captain Picard?", a: ["Coffee","Synthehol","Tea","Aldebaran whiskey"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Journey%27s_End_%28episode%29" },
-  ],
-  600: [
-    { q: `Who accompanied Captain Picard onto the Holodeck in the episode "Pen Pals"?`, a: ["Lt. Commander Data","Guinan","Counselor Troi","Lieutenant Worf"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Pen_Pals_%28episode%29" },
-    { q: `As learned in "Loud as a Whisper," before Mediator Rivas, there was no word for what in the Klingon vocabulary?`, a: ["Peacemaker","Friend","Negotiation","Diplomat"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29" },
-    { q: `Which of the following groups comprised the Away Team to the planet Ramatis III in "Loud as a Whisper"?`, a: ["Picard, Data, Pulaski","Riker, Worf, Data","Picard, Worf, Troi","Picard, Data, Worf"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29" },
-    { q: "Which of these is a measuring unit for a starship's structural integrity field?", a: ["Kilobyte","Kilodyne","Kilogram","Kiloparsec"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Dyne" },
-    { q: "In what division at the Daystrom Institute does Commander Bruce Maddox serve?", a: ["Cybernetics","Hydroponics","Audioanimatronics","Astrometrics"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Bruce_Maddox" },
-    { q: "When Keiko married Miles O'Brien, who was the \"father\" of the bride?", a: ["Will Riker","Jean-Luc Picard","Data","Worf"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29" },
-    { q: "Who did Keiko ask to inform Miles O'Brien that she wanted to cancel their wedding?", a: ["Guinan","Data","Deanna Troi","Dr. Crusher"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Data%27s_Day_%28episode%29" },
-    { q: "Give the name of the old friend Picard ran into on Starbase 173, who also had prosecuted him in the Stargazer Court martial?", a: ["Admiral Gregory Quinn","Captain Tryla Scott","Captain Phillipa Louvois","Judge Advocate General Nora Satie"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Phillipa_Louvois" },
-    { q: `In "Contagion," Captain Picard took the U.S.S. Enterprise into the Neutral Zone to answer an SOS from which ship?`, a: ["U.S.S. Victory","U.S.S. Yamato","U.S.S. Rio Grande","U.S.S. Hathaway"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Contagion_%28episode%29" },
-    { q: `Name the U.S.S. Enterprise sister ship, which exploded in the Neutral Zone, due to malfunctions, in "Contagion."`, a: ["U.S.S. Galaxy","U.S.S. Endeavor","U.S.S. Yamato","U.S.S. Odyssey"], c: 2, src: "https://memory-alpha.fandom.com/wiki/USS_Yamato" },
-    { q: "Which admiral reassigned Captain Picard to a secret mission in Cardassian territory?", a: ["Admiral Alynna Nechayev","Admiral J.P. Hanson","Admiral Norah Satie","Admiral Gregory Quinn"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Alynna_Nechayev" },
-    { q: "Who is the captain of the U.S.S. Cairo?", a: ["Captain Robert DeSoto","Captain Walker Keel","Captain Edward Jellico","Captain Benjamin Maxwell"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Edward_Jellico" },
-  ],
-  800: [
-    { q: "What kind of vessel is the U.S.S. Lantree?", a: ["A Constellation class starship","A Class VI Federation supply ship","A Galaxy class starship","An Oberth class science vessel"], c: 1, src: "https://memory-alpha.fandom.com/wiki/USS_Lantree" },
-    { q: `In "Unnatural Selection," who was Captain of the U.S.S. Lantree?`, a: ["Captain Dathon","Captain Stephens","Captain Telaka","Captain Donald Varley"], c: 2, src: "https://memory-alpha.fandom.com/wiki/L._Isao_Telaka" },
-    { q: `In "Pen Pals," what was the cause of the destruction of the fifth planet in the Selcundi Drema System?`, a: ["An imploding nebula","Geological instability","A black hole","Solar flare activity"], c: 1, src: "https://memory-alpha.fandom.com/wiki/Pen_Pals_%28episode%29" },
-    { q: "Much of Riker's decision to accept command of the U.S.S. Aries would depend on what?", a: ["How complete the briefing of his mission is","What officers from the U.S.S. Enterprise he could take with him","If Picard would stay on the U.S.S. Enterprise or not","Whether the Aries had a cloaking device"], c: 0, src: "https://memory-alpha.fandom.com/wiki/The_Icarus_Factor_%28episode%29" },
-    { q: `Who was the civilian advisor of the strategic attaches in "The Icarus Factor"?`, a: ["Kyle Riker","Ian Troi","Devinoni Ral","Sergey Rozhenko"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Kyle_Riker" },
-    { q: `In "Loud as a Whisper," who met the Away Team when it beamed down to the planet Ramatis III?`, a: ["The Prime Minister","Mediator Rivas","No one met the Away Team","A delegation of Chorus interpreters"], c: 2, src: "https://memory-alpha.fandom.com/wiki/Loud_As_A_Whisper_%28episode%29" },
-    { q: "Captain Picard offered to take Commander Riker for a horseback ride in the Holodeck along what Earth river?", a: ["The Kabul River","The Yangtse Kiang River","The Rio Grande River","The Ganges River"], c: 0, src: "https://memory-alpha.fandom.com/wiki/Kabul_River" },
-    { q: "On what starship did Captain Picard attempt to make preliminary overtures for a truce to the Cardassians?", a: ["U.S.S. Enterprise","U.S.S. Stargazer","U.S.S. Rutledge","U.S.S. Phoenix"], c: 1, src: "https://memory-alpha.fandom.com/wiki/USS_Stargazer_%28NCC-2893%29" },
-    { q: `In "The Royale," the U.S.S. Enterprise beamed aboard a piece of debris that had what acronym on it?`, a: ["UNCLE","IML-1","NASA","NACA"], c: 2, src: "https://memory-alpha.fandom.com/wiki/National_Aeronautics_and_Space_Administration" },
-    { q: "What starship brought Admiral Alynna Nechayev to the U.S.S. Enterprise?", a: ["U.S.S. Wellington","U.S.S. Cairo","U.S.S. Hood","U.S.S. Melbourne"], c: 1, src: "https://memory-alpha.fandom.com/wiki/USS_Cairo" },
-  ],
-  1000: [
-    { q: `In "The Measure of a Man," Data discovered that Commander Maddox had not yet determined how the electron resistance across what was to be resolved?`, a: ["Positronic matrices","Neural filaments","Positronic interference","Isolinear pathways"], c: 1, src: "https://memory-alpha.fandom.com/wiki/The_Measure_Of_A_Man_%28episode%29" },
-  ],
-};
-
-// ════════════════════════════════════════════════════════════
-// STARS
 // ════════════════════════════════════════════════════════════
 (function() {
   const cv = document.getElementById('stars'), ctx = cv.getContext('2d');

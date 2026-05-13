@@ -725,7 +725,48 @@
 // ════════════════════════════════════════════════════════════
 const VALUES = [200, 400, 600, 800, 1000];
 
-const CATS = [
+let TIERS = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
+const difficultyToPts = { 1: 200, 2: 400, 3: 600, 4: 800, 5: 1000 };
+
+async function loadQuestions(game) {
+  try {
+    const res = await fetch(`/api/questions/${game}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // Build TIERS flat arrays keyed by point value
+    TIERS = { 200: [], 400: [], 600: [], 800: [], 1000: [] };
+
+    // Also populate CATS (category metadata + questions) from API response
+    CATS.length = 0;
+    for (const cat of data.categories) {
+      CATS.push({
+        id: cat.id,
+        name: cat.name,
+        color: cat.color || '#FF00CC',
+        icon: cat.icon || '❓',
+        q: { 200: [], 400: [], 600: [], 800: [], 1000: [] },
+      });
+    }
+
+    // Distribute questions into TIERS (by difficulty→points) and CATS[cat].q (by points)
+    for (const q of data.questions) {
+      const pts = difficultyToPts[q.difficulty] ?? 200;
+      const cat = CATS.find(c => c.id === q.catId);
+      if (!cat) continue;
+
+      const questionObj = { q: q.question, a: q.answers, c: q.correct ?? 0, catId: q.catId, catName: cat.name, catColor: cat.color, catIcon: cat.icon };
+      TIERS[pts].push(questionObj);
+      if (cat.q[pts]) cat.q[pts].push(questionObj);
+    }
+
+    if (typeof buildBoard === 'function') buildBoard();
+  } catch (err) {
+    console.error('Failed to load questions:', err);
+  }
+}
+document.addEventListener('DOMContentLoaded', () => loadQuestions('80s'));
+
   // 80s MOVIES
   {
     id: 'movies', name: '80s Movies', color: '#FF00CC', icon: '🎬',
@@ -1030,7 +1071,8 @@ function buildPlayerInputs() {
   }).join('');
 }
 
-function startGame() {
+async function startGame() {
+  await loadQuestions('80s');
   const names = Array.from({length: selectedCount}, (_, i) =>
     (document.getElementById(`pn-${i}`)?.value.trim().toUpperCase()) || DEF[i]);
 
@@ -1398,9 +1440,11 @@ function showResult(correct, points, correctAns, timedOut = false) {
 // QUESTION PICKING — no duplicates within a session
 // ════════════════════════════════════════════════════════════
 function pickQuestion(catId, tier) {
-  const pool = CATS.find(c => c.id === catId).q[tier];
-  const unused = pool.filter(q => !G.usedQTexts.has(q.q));
-  const source = unused.length > 0 ? unused : pool; // fallback if whole pool exhausted
+  const pts = tier; // tier is already a point value (200,400,...)
+  const pool = TIERS[pts].filter(q => q.catId === catId && !G.usedQTexts.has(q.q));
+  const fallback = TIERS[pts].filter(q => q.catId === catId);
+  const source = pool.length > 0 ? pool : fallback;
+  if (source.length === 0) return null;
   const picked = source[Math.floor(Math.random() * source.length)];
   G.usedQTexts.add(picked.q);
   return picked;
