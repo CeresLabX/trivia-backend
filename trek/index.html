@@ -841,7 +841,7 @@ function buildPlayerInputs() {
   }).join('');
 }
 
-function startGame() {
+async function startGame() {
   const names = Array.from({length: selectedCount}, (_, i) =>
     (document.getElementById(`pn-${i}`)?.value.trim().toUpperCase()) || DEF[i]);
 
@@ -874,6 +874,7 @@ function startGame() {
   const ddVal = ddVals[Math.floor(Math.random() * ddVals.length)];
   G.dailyDouble = { catId: ddCat.id, value: ddVal };
 
+  await loadQuestions('trek');
   showScreen('game-screen');
   renderHUD();
   renderBoard();
